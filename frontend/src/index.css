@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Brutalist design system overrides */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  background-color: #FFFFFF;
+  color: #000000;
+  line-height: 1.4;
+}
+
+/* Remove all border radius globally */
+* {
+  border-radius: 0 !important;
+}
+
+/* Ensure all text is uppercase for headings */
+h1, h2, h3, h4, h5, h6 {
+  text-transform: uppercase;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+}
+
+/* Button hover effects */
+.brutalist-button {
+  transition: none !important;
+  border: 4px solid #000000;
+  background-color: #000000;
+  color: #FFFFFF;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.brutalist-button:hover {
+  background-color: #FFFFFF;
+  color: #000000;
+}
+
+.brutalist-button:disabled {
+  background-color: #F5F5F5;
+  color: #000000;
+  cursor: not-allowed;
+}
+
+/* Input and textarea styling */
+.brutalist-input {
+  border: 4px solid #000000;
+  background-color: #FFFFFF;
+  color: #000000;
+  font-family: 'Courier New', monospace;
+  padding: 12px;
+}
+
+.brutalist-input:focus {
+  outline: none;
+  border-color: #000000;
+}
+
+/* Container styling */
+.brutalist-container {
+  border: 4px solid #000000;
+  background-color: #FFFFFF;
+  padding: 16px;
+}
