@@ -241,3 +241,4 @@ temp_uploads/
 # Sample data (keep structure but ignore actual files)
 backend/dataset/resumes/*.pdf
 backend/dataset/data/*.json
+.vercel
