@@ -27,17 +27,28 @@ app = FastAPI(
 )
 
 # Get environment variables
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://*.vercel.app").split(",")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Configure CORS for production
+if ENVIRONMENT == "production":
+    # In production, allow Vercel domains and Railway
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins for Railway deployment
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
+    )
+else:
+    # In development, use specific origins
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=ALLOWED_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 @app.get("/")
@@ -209,4 +220,5 @@ async def extract_resume_only(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
