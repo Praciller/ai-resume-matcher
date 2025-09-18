@@ -51,6 +51,7 @@ class handler(BaseHTTPRequestHandler):
         if self.path == '/api/health':
             response = {
                 "status": "healthy",
+                "timestamp": "2025-01-18-v2",  # Force cache bust
                 "ai_available": AI_AVAILABLE,
                 "import_status": IMPORT_STATUS,
                 "current_dir": current_dir,
