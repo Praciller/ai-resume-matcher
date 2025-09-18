@@ -221,14 +221,30 @@ The application includes comprehensive error handling for:
 
 ## Deployment
 
-This project includes comprehensive CI/CD setup for deployment to GitHub Pages (frontend) and various backend hosting services.
+This project supports multiple deployment options with built-in authentication.
 
-### Quick Deployment
+### Vercel Deployment (Recommended)
 
-1. Push your code to GitHub
-2. Configure GitHub Pages in repository settings
-3. Deploy backend to Railway, Render, or Vercel
-4. Update frontend environment variables with backend URL
+Deploy the full-stack application to Vercel with GitHub authentication:
+
+1. **Quick Setup**:
+
+   ```bash
+   node deploy-to-vercel.js  # Check deployment readiness
+   ```
+
+2. **Deploy to Vercel**:
+   - Connect your GitHub repository to Vercel
+   - Set up Supabase for GitHub OAuth
+   - Configure environment variables
+   - Deploy!
+
+For detailed instructions, see [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md).
+
+### Alternative Deployments
+
+- **Frontend**: GitHub Pages, Netlify, or Vercel
+- **Backend**: Railway, Render, or Heroku
 
 For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 

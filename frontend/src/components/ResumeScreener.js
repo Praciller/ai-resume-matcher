@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ApiService from "../services/api";
+import UserProfile from "./UserProfile";
 
 const ResumeScreener = () => {
   const [jobDescription, setJobDescription] = useState("");
@@ -59,6 +60,9 @@ const ResumeScreener = () => {
 
   return (
     <div className="min-h-screen bg-white p-8">
+      {/* User Profile */}
+      <UserProfile />
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-mono font-bold text-center border-4 border-black p-4 bg-white">
