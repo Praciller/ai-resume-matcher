@@ -3,9 +3,13 @@ Gemini AI integration for resume data extraction and job matching.
 """
 import json
 import os
+import logging
 from typing import Dict, Any, Optional
 import google.generativeai as genai
 from dotenv import load_dotenv
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -71,6 +75,13 @@ def extract_resume_data(resume_text: str) -> Dict[str, Any]:
         # Parse the JSON response
         response_text = response.text.strip()
 
+        # Log the raw response for debugging
+        logger.info(f"Raw Gemini response: {response_text[:100]}...")
+
+        # Check if response indicates an error
+        if response_text.startswith("A SERVER ERROR") or "error" in response_text.lower()[:50]:
+            raise Exception(f"Gemini API returned an error: {response_text[:200]}")
+
         # Try to extract JSON from response if it contains extra text
         if response_text.startswith('```json'):
             response_text = response_text.replace('```json', '').replace('```', '').strip()
@@ -82,6 +93,9 @@ def extract_resume_data(resume_text: str) -> Dict[str, Any]:
         end_idx = response_text.rfind('}') + 1
         if start_idx != -1 and end_idx > start_idx:
             response_text = response_text[start_idx:end_idx]
+        else:
+            # If no JSON found, the response might be an error message
+            raise Exception(f"No valid JSON found in response: {response_text[:100]}")
 
         resume_data = json.loads(response_text)
         
@@ -94,8 +108,28 @@ def extract_resume_data(resume_text: str) -> Dict[str, Any]:
         return resume_data
         
     except json.JSONDecodeError as e:
-        raise Exception(f"Failed to parse AI response as JSON: {str(e)}")
+        # Log the actual response for debugging
+        logger.error(f"Failed to parse AI response as JSON. Response was: {response_text[:200]}...")
+        # Return a fallback response instead of failing completely
+        return {
+            "skills": ["Unable to extract skills"],
+            "experience_years": 0,
+            "education": ["Unable to extract education"],
+            "previous_roles": ["Unable to extract roles"],
+            "key_achievements": ["Unable to extract achievements"]
+        }
     except Exception as e:
+        logger.error(f"Error in extract_resume_data: {str(e)}")
+        # Check if it's a Gemini API error and provide fallback
+        if "API" in str(e) or "quota" in str(e).lower() or "key" in str(e).lower():
+            logger.error(f"Gemini API error, providing fallback response: {str(e)}")
+            return {
+                "skills": ["Unable to extract skills - API error"],
+                "experience_years": 0,
+                "education": ["Unable to extract education - API error"],
+                "previous_roles": ["Unable to extract roles - API error"],
+                "key_achievements": ["Unable to extract achievements - API error"]
+            }
         raise Exception(f"Error extracting resume data: {str(e)}")
 
 
@@ -152,6 +186,13 @@ def compare_resume_to_jd(resume_data: Dict[str, Any], jd_text: str) -> Dict[str,
         # Parse the JSON response
         response_text = response.text.strip()
 
+        # Log the raw response for debugging
+        logger.info(f"Raw Gemini response: {response_text[:100]}...")
+
+        # Check if response indicates an error
+        if response_text.startswith("A SERVER ERROR") or "error" in response_text.lower()[:50]:
+            raise Exception(f"Gemini API returned an error: {response_text[:200]}")
+
         # Try to extract JSON from response if it contains extra text
         if response_text.startswith('```json'):
             response_text = response_text.replace('```json', '').replace('```', '').strip()
@@ -163,6 +204,9 @@ def compare_resume_to_jd(resume_data: Dict[str, Any], jd_text: str) -> Dict[str,
         end_idx = response_text.rfind('}') + 1
         if start_idx != -1 and end_idx > start_idx:
             response_text = response_text[start_idx:end_idx]
+        else:
+            # If no JSON found, the response might be an error message
+            raise Exception(f"No valid JSON found in response: {response_text[:100]}")
 
         match_analysis = json.loads(response_text)
         
@@ -178,8 +222,32 @@ def compare_resume_to_jd(resume_data: Dict[str, Any], jd_text: str) -> Dict[str,
         return match_analysis
         
     except json.JSONDecodeError as e:
-        raise Exception(f"Failed to parse AI response as JSON: {str(e)}")
+        # Log the actual response for debugging
+        logger.error(f"Failed to parse AI response as JSON. Response was: {response_text[:200]}...")
+        # Return a fallback response instead of failing completely
+        return {
+            "match_score": 50,
+            "match_summary": "Unable to analyze resume due to AI parsing error. Please try again.",
+            "skill_matches": [],
+            "skill_gaps": [],
+            "experience_match": "Unable to analyze",
+            "education_match": "Unable to analyze",
+            "overall_recommendation": "Unable to provide recommendation due to technical error"
+        }
     except Exception as e:
+        logger.error(f"Error in compare_resume_to_jd: {str(e)}")
+        # Check if it's a Gemini API error and provide fallback
+        if "API" in str(e) or "quota" in str(e).lower() or "key" in str(e).lower():
+            logger.error(f"Gemini API error, providing fallback response: {str(e)}")
+            return {
+                "match_score": 50,
+                "match_summary": "Unable to analyze resume due to AI service error. Please check API configuration.",
+                "skill_matches": [],
+                "skill_gaps": [],
+                "experience_match": "Unable to analyze",
+                "education_match": "Unable to analyze",
+                "overall_recommendation": "Unable to provide recommendation due to AI service error"
+            }
         raise Exception(f"Error comparing resume to job description: {str(e)}")
 
 
