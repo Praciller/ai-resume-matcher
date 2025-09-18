@@ -9,8 +9,14 @@ import os
 from typing import Dict, Any
 from dotenv import load_dotenv
 
-from .core.parser import parse_pdf_to_text, validate_pdf_file
-from .core.llm_extractor import extract_resume_data, compare_resume_to_jd, test_gemini_api
+import sys
+import os
+
+# Add the current directory to Python path
+sys.path.insert(0, os.path.dirname(__file__))
+
+from core.parser import parse_pdf_to_text, validate_pdf_file
+from core.llm_extractor import extract_resume_data, compare_resume_to_jd, test_gemini_api
 
 # Load environment variables
 load_dotenv()

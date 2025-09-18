@@ -1,9 +1,32 @@
 """
 Vercel serverless function entry point for FastAPI backend.
 """
-from fastapi import FastAPI
-from mangum import Mangum
-from .main import app
+import sys
+import os
 
-# Create the handler for Vercel
-handler = Mangum(app, lifespan="off")
+# Add the current directory to Python path
+sys.path.insert(0, os.path.dirname(__file__))
+
+try:
+    from mangum import Mangum
+    import main
+
+    # Create the handler for Vercel
+    handler = Mangum(main.app, lifespan="off")
+
+except ImportError as e:
+    print(f"Import error: {e}")
+    # Fallback handler
+    def handler(event, context):
+        return {
+            "statusCode": 500,
+            "body": f"Import error: {str(e)}"
+        }
+except Exception as e:
+    print(f"Handler creation error: {e}")
+    # Fallback handler
+    def handler(event, context):
+        return {
+            "statusCode": 500,
+            "body": f"Handler error: {str(e)}"
+        }
