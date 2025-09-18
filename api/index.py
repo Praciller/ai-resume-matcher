@@ -1,12 +1,9 @@
 """
 Vercel serverless function entry point for FastAPI backend.
 """
-from http.server import BaseHTTPRequestHandler
 import json
 import sys
 import os
-from urllib.parse import parse_qs
-import io
 
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(__file__))
@@ -18,16 +15,30 @@ except Exception as e:
     print(f"Failed to import main app: {e}")
     app = None
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == '/api/health':
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-            self.end_headers()
+def handler(request):
+    """
+    Vercel serverless function handler
+    """
+    try:
+        method = request.get('method', 'GET')
+        path = request.get('path', '/')
 
+        # CORS headers
+        headers = {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
+
+        if method == 'OPTIONS':
+            return {
+                'statusCode': 200,
+                'headers': headers,
+                'body': ''
+            }
+
+        if path == '/api/health' and method == 'GET':
             if app:
                 try:
                     # Test Gemini API
@@ -39,51 +50,45 @@ class handler(BaseHTTPRequestHandler):
             else:
                 response = {"status": "error", "message": "App not loaded"}
 
-            self.wfile.write(json.dumps(response).encode())
-        else:
-            self.send_response(404)
-            self.end_headers()
+            return {
+                'statusCode': 200,
+                'headers': headers,
+                'body': json.dumps(response)
+            }
 
-    def do_POST(self):
-        if self.path == '/api/screen-resume':
-            try:
-                # Set CORS headers
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-                self.end_headers()
-
-                # For now, return a simple response to test if the handler works
-                response = {
-                    "match_score": 75,
-                    "match_summary": "Test response - handler is working",
-                    "detailed_analysis": {
-                        "skill_matches": ["Python", "JavaScript"],
-                        "skill_gaps": ["LangChain"],
-                        "experience_match": "Good match",
-                        "education_match": "Relevant background",
-                        "overall_recommendation": "Recommended for interview"
-                    }
+        elif path == '/api/screen-resume' and method == 'POST':
+            # For now, return a simple response to test if the handler works
+            response = {
+                "match_score": 75,
+                "match_summary": "Test response - handler is working",
+                "detailed_analysis": {
+                    "skill_matches": ["Python", "JavaScript"],
+                    "skill_gaps": ["LangChain"],
+                    "experience_match": "Good match",
+                    "education_match": "Relevant background",
+                    "overall_recommendation": "Recommended for interview"
                 }
+            }
 
-                self.wfile.write(json.dumps(response).encode())
+            return {
+                'statusCode': 200,
+                'headers': headers,
+                'body': json.dumps(response)
+            }
 
-            except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                error_response = {"error": f"Handler error: {str(e)}"}
-                self.wfile.write(json.dumps(error_response).encode())
         else:
-            self.send_response(404)
-            self.end_headers()
+            return {
+                'statusCode': 404,
+                'headers': headers,
+                'body': json.dumps({"error": "Not found"})
+            }
 
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({"error": f"Handler error: {str(e)}"})
+        }
