@@ -5,8 +5,6 @@ EXPERIENCE:
 Built e-commerce platforms using React and Node.js
 Developed data analytics dashboards for financial data
 Experience with Python, JavaScript, SQL, Docker, AWS
-Strong code review participation
-Linux/Unix system administration
 
 EDUCATION:
 Bachelor's in Computer Science

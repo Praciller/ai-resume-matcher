@@ -60,7 +60,7 @@ class handler(BaseHTTPRequestHandler):
                 response = {
                     "status": "healthy",
                     "timestamp": datetime.now().isoformat(),
-                    "deployment_version": "v4.0",  # Version bump
+                    "deployment_version": "v6.0-FINAL-PRODUCTION",  # Version bump
                     "ai_available": AI_AVAILABLE,
                     "import_status": IMPORT_STATUS,
                     "current_dir": current_dir,
@@ -82,7 +82,7 @@ class handler(BaseHTTPRequestHandler):
                     response["gemini_ai"] = "modules not loaded"
                     response["error"] = AI_ERROR
             else:
-                response = {"message": "API is running", "version": "v4.0"}
+                response = {"message": "AI Resume Matcher API - PRODUCTION READY", "version": "v6.0-FINAL", "status": "ready"}
 
             self.wfile.write(json.dumps(response, default=str).encode('utf-8'))
 
