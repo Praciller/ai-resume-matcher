@@ -58,9 +58,12 @@ class handler(BaseHTTPRequestHandler):
 
             if self.path == '/api/health':
                 response = {
+                    "DEPLOYMENT_SUCCESSFUL": True,
                     "status": "healthy",
                     "timestamp": datetime.now().isoformat(),
-                    "deployment_version": "v6.0-FINAL-PRODUCTION",  # Version bump
+                    "deployment_version": "v8.0-AGGRESSIVE-CACHE-BREAK",
+                    "deployment_timestamp": "2025-01-18T19:45:00Z",
+                    "cache_buster": f"BREAK_CACHE_{datetime.now().timestamp()}",
                     "ai_available": AI_AVAILABLE,
                     "import_status": IMPORT_STATUS,
                     "current_dir": current_dir,
@@ -68,7 +71,8 @@ class handler(BaseHTTPRequestHandler):
                     "environment_vars": {
                         "has_gemini_key": bool(os.getenv('GEMINI_API_KEY')),
                         "gemini_key_length": len(os.getenv('GEMINI_API_KEY', '')) if os.getenv('GEMINI_API_KEY') else 0
-                    }
+                    },
+                    "FORCE_UPDATE": "THIS_IS_A_NEW_DEPLOYMENT"
                 }
 
                 if AI_AVAILABLE:
@@ -82,7 +86,14 @@ class handler(BaseHTTPRequestHandler):
                     response["gemini_ai"] = "modules not loaded"
                     response["error"] = AI_ERROR
             else:
-                response = {"message": "AI Resume Matcher API - PRODUCTION READY", "version": "v6.0-FINAL", "status": "ready"}
+                response = {
+                    "message": "AI Resume Matcher API - DEPLOYMENT SUCCESSFUL v8.0",
+                    "version": "v8.0-AGGRESSIVE-CACHE-BREAK",
+                    "status": "ready",
+                    "DEPLOYMENT_SUCCESSFUL": True,
+                    "timestamp": datetime.now().isoformat(),
+                    "endpoints": ["/api/health", "/api/screen-resume"]
+                }
 
             self.wfile.write(json.dumps(response, default=str).encode('utf-8'))
 

@@ -1,0 +1,18 @@
+{
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/build", 
+  "installCommand": "cd frontend && npm install",
+  
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.12"
+    }
+  },
+  
+  "env": {
+    "ENVIRONMENT": "production",
+    "GEMINI_API_KEY": "@gemini_api_key",
+    "DEPLOYMENT_VERSION": "v8.0-AGGRESSIVE-CACHE-BREAK",
+    "FORCE_REBUILD": "true"
+  }
+}
