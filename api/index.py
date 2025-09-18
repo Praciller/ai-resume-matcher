@@ -13,9 +13,11 @@ try:
     from core.parser import parse_pdf_to_text, validate_pdf_file
     from core.llm_extractor import extract_resume_data, compare_resume_to_jd, test_gemini_api
     AI_AVAILABLE = True
+    AI_ERROR = None
 except Exception as e:
     print(f"AI modules not available: {e}")
     AI_AVAILABLE = False
+    AI_ERROR = str(e)
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -30,11 +32,24 @@ class handler(BaseHTTPRequestHandler):
             if AI_AVAILABLE:
                 try:
                     gemini_status = test_gemini_api()
-                    response = {"status": "healthy", "gemini_ai": gemini_status.get("status", "checking")}
+                    response = {
+                        "status": "healthy",
+                        "gemini_ai": gemini_status.get("status", "checking"),
+                        "ai_modules": "loaded"
+                    }
                 except Exception as e:
-                    response = {"status": "healthy", "gemini_ai": f"error: {str(e)}"}
+                    response = {
+                        "status": "healthy",
+                        "gemini_ai": f"error: {str(e)}",
+                        "ai_modules": "loaded but api failed"
+                    }
             else:
-                response = {"status": "healthy", "gemini_ai": "modules not loaded"}
+                response = {
+                    "status": "healthy",
+                    "gemini_ai": "modules not loaded",
+                    "ai_modules": "failed to import",
+                    "error": AI_ERROR
+                }
         else:
             response = {"message": "API is running"}
 
@@ -81,13 +96,13 @@ class handler(BaseHTTPRequestHandler):
         if not AI_AVAILABLE:
             return {
                 "match_score": 0,
-                "match_summary": "AI processing modules are not available. Please check server configuration.",
+                "match_summary": f"AI processing modules are not available. Error: {AI_ERROR}",
                 "detailed_analysis": {
                     "skill_matches": [],
                     "skill_gaps": [],
                     "experience_match": "AI modules not loaded",
                     "education_match": "AI modules not loaded",
-                    "overall_recommendation": "Cannot process - server configuration issue"
+                    "overall_recommendation": f"Cannot process - server configuration issue: {AI_ERROR}"
                 }
             }
 
