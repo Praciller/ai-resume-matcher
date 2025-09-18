@@ -19,7 +19,60 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY not found in environment variables")
 
-genai.configure(api_key=GEMINI_API_KEY)
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+    logger.info("Gemini AI configured successfully")
+except Exception as e:
+    logger.error(f"Failed to configure Gemini AI: {str(e)}")
+    raise ValueError(f"Failed to configure Gemini AI: {str(e)}")
+
+
+def test_gemini_api() -> Dict[str, Any]:
+    """
+    Test the Gemini API connection and return status.
+
+    Returns:
+        dict: Status information about the Gemini API connection
+    """
+    try:
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content("Hello, this is a test. Please respond with 'API working'.")
+
+        if response and response.text:
+            return {
+                "status": "working",
+                "message": "Gemini API is responding correctly",
+                "test_response": response.text.strip()
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Gemini API returned empty response",
+                "test_response": None
+            }
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Gemini API test failed: {error_msg}")
+
+        # Check for specific error types
+        if "API_KEY" in error_msg.upper() or "INVALID" in error_msg.upper():
+            return {
+                "status": "invalid_key",
+                "message": "Invalid or missing API key",
+                "error": error_msg
+            }
+        elif "QUOTA" in error_msg.upper() or "LIMIT" in error_msg.upper():
+            return {
+                "status": "quota_exceeded",
+                "message": "API quota exceeded or rate limited",
+                "error": error_msg
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Unknown API error",
+                "error": error_msg
+            }
 
 
 def extract_resume_data(resume_text: str) -> Dict[str, Any]:

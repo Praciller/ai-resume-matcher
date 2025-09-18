@@ -10,7 +10,7 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 
 from core.parser import parse_pdf_to_text, validate_pdf_file
-from core.llm_extractor import extract_resume_data, compare_resume_to_jd, test_gemini_connection
+from core.llm_extractor import extract_resume_data, compare_resume_to_jd, test_gemini_api
 
 # Load environment variables
 load_dotenv()
@@ -61,10 +61,12 @@ async def root():
 async def health_check():
     """Detailed health check including AI service status."""
     try:
-        gemini_status = test_gemini_connection()
+        gemini_test = test_gemini_api()
         return {
             "status": "healthy",
-            "gemini_ai": "connected" if gemini_status else "disconnected"
+            "gemini_ai": gemini_test["status"],
+            "gemini_message": gemini_test.get("message", ""),
+            "gemini_error": gemini_test.get("error", None)
         }
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
