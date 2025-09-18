@@ -1,6 +1,7 @@
 """
 Vercel serverless function entry point for FastAPI backend.
 """
+from http.server import BaseHTTPRequestHandler
 import json
 import sys
 import os
@@ -15,57 +16,51 @@ except Exception as e:
     print(f"Failed to import main app: {e}")
     app = None
 
-def handler(request):
-    """
-    Vercel serverless function handler
-    """
-    try:
-        method = request.get('method', 'GET')
-        path = request.get('path', '/')
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        try:
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.end_headers()
 
-        # CORS headers
-        headers = {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
-
-        if method == 'OPTIONS':
-            return {
-                'statusCode': 200,
-                'headers': headers,
-                'body': ''
-            }
-
-        if path == '/api/health' and method == 'GET':
-            if app:
-                try:
-                    # Test Gemini API
-                    from core.llm_extractor import test_gemini_api
-                    gemini_status = test_gemini_api()
-                    response = {"status": "healthy", "gemini_ai": gemini_status}
-                except Exception as e:
-                    response = {"status": "healthy", "gemini_ai": f"error: {str(e)}"}
+            if self.path == '/api/health':
+                if app:
+                    try:
+                        # Test Gemini API
+                        from core.llm_extractor import test_gemini_api
+                        gemini_status = test_gemini_api()
+                        response = {"status": "healthy", "gemini_ai": gemini_status}
+                    except Exception as e:
+                        response = {"status": "healthy", "gemini_ai": f"error: {str(e)}"}
+                else:
+                    response = {"status": "error", "message": "App not loaded"}
             else:
-                response = {"status": "error", "message": "App not loaded"}
+                response = {"message": "API is running"}
 
-            return {
-                'statusCode': 200,
-                'headers': headers,
-                'body': json.dumps(response)
-            }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
 
-        elif path == '/api/screen-resume' and method == 'POST':
-            try:
-                # Get the request body and form data
-                body = request.get('body', '')
-                if request.get('isBase64Encoded', False):
-                    import base64
-                    body = base64.b64decode(body).decode('utf-8')
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            error_response = {"error": f"GET error: {str(e)}"}
+            self.wfile.write(json.dumps(error_response).encode('utf-8'))
 
-                # For now, let's return a more detailed test response that shows we're processing the request
-                # In the future, this would parse the multipart form data and process the actual file
+    def do_POST(self):
+        try:
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.end_headers()
+
+            if self.path == '/api/screen-resume':
+                # Test response for file upload
                 response = {
                     "match_score": 85,
                     "match_summary": "Resume successfully processed! This is a test response showing the handler is working with file uploads.",
@@ -77,47 +72,26 @@ def handler(request):
                         "overall_recommendation": "Highly recommended for interview - strong candidate with relevant skills"
                     }
                 }
+            else:
+                response = {"message": "POST endpoint"}
 
-                return {
-                    'statusCode': 200,
-                    'headers': headers,
-                    'body': json.dumps(response)
-                }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
 
-            except Exception as e:
-                # Return error as JSON to avoid the "A SERVER E..." error
-                error_response = {
-                    "error": f"Processing error: {str(e)}",
-                    "match_score": 0,
-                    "match_summary": "Error processing resume. Please try again.",
-                    "detailed_analysis": {
-                        "skill_matches": [],
-                        "skill_gaps": [],
-                        "experience_match": "Unable to analyze",
-                        "education_match": "Unable to analyze",
-                        "overall_recommendation": "Please resubmit resume"
-                    }
-                }
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            error_response = {"error": f"POST error: {str(e)}"}
+            self.wfile.write(json.dumps(error_response).encode('utf-8'))
 
-                return {
-                    'statusCode': 200,  # Return 200 to avoid frontend errors
-                    'headers': headers,
-                    'body': json.dumps(error_response)
-                }
-
-        else:
-            return {
-                'statusCode': 404,
-                'headers': headers,
-                'body': json.dumps({"error": "Not found"})
-            }
-
-    except Exception as e:
-        return {
-            'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({"error": f"Handler error: {str(e)}"})
-        }
+    def do_OPTIONS(self):
+        try:
+            self.send_response(200)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.end_headers()
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
