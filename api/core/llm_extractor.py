@@ -35,7 +35,7 @@ def test_gemini_api() -> Dict[str, Any]:
         dict: Status information about the Gemini API connection
     """
     try:
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content("Hello, this is a test. Please respond with 'API working'.")
 
         if response and response.text:
