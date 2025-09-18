@@ -3,12 +3,13 @@ import json
 import sys
 import os
 from datetime import datetime
+import traceback
 
 # Add the current directory to Python path
 current_dir = os.path.dirname(__file__)
 sys.path.insert(0, current_dir)
 
-# Test imports step by step
+# Test imports step by step with detailed error tracking
 IMPORT_STATUS = {}
 AI_AVAILABLE = False
 AI_ERROR = None
@@ -32,45 +33,67 @@ try:
     AI_ERROR = None
 
 except Exception as e:
-    print(f"AI modules not available: {e}")
+    error_details = {
+        "error": str(e),
+        "traceback": traceback.format_exc(),
+        "python_version": sys.version,
+        "current_dir": current_dir,
+        "sys_path": sys.path[:5]
+    }
+    print(f"AI modules not available: {error_details}")
     AI_AVAILABLE = False
-    AI_ERROR = str(e)
+    AI_ERROR = error_details
     IMPORT_STATUS["error"] = str(e)
+    IMPORT_STATUS["details"] = error_details
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
+        try:
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.end_headers()
 
-        if self.path == '/api/health':
-            response = {
-                "status": "healthy",
-                "timestamp": datetime.now().isoformat(),  # Force cache bust with current time
-                "deployment_version": "v3.0",  # Version bump to force update
-                "ai_available": AI_AVAILABLE,
-                "import_status": IMPORT_STATUS,
-                "current_dir": current_dir,
-                "python_path": sys.path[:3]  # Show first 3 entries
-            }
+            if self.path == '/api/health':
+                response = {
+                    "status": "healthy",
+                    "timestamp": datetime.now().isoformat(),
+                    "deployment_version": "v4.0",  # Version bump
+                    "ai_available": AI_AVAILABLE,
+                    "import_status": IMPORT_STATUS,
+                    "current_dir": current_dir,
+                    "python_path": sys.path[:3],
+                    "environment_vars": {
+                        "has_gemini_key": bool(os.getenv('GEMINI_API_KEY')),
+                        "gemini_key_length": len(os.getenv('GEMINI_API_KEY', '')) if os.getenv('GEMINI_API_KEY') else 0
+                    }
+                }
 
-            if AI_AVAILABLE:
-                try:
-                    gemini_status = test_gemini_api()
-                    response["gemini_ai"] = gemini_status.get("status", "checking")
-                    response["gemini_message"] = gemini_status.get("message", "")
-                except Exception as e:
-                    response["gemini_ai"] = f"error: {str(e)}"
+                if AI_AVAILABLE:
+                    try:
+                        gemini_status = test_gemini_api()
+                        response["gemini_ai"] = gemini_status.get("status", "checking")
+                        response["gemini_message"] = gemini_status.get("message", "")
+                    except Exception as e:
+                        response["gemini_ai"] = f"error: {str(e)}"
+                else:
+                    response["gemini_ai"] = "modules not loaded"
+                    response["error"] = AI_ERROR
             else:
-                response["gemini_ai"] = "modules not loaded"
-                response["error"] = AI_ERROR
-        else:
-            response = {"message": "API is running", "version": "v3.0"}
+                response = {"message": "API is running", "version": "v4.0"}
 
-        self.wfile.write(json.dumps(response).encode('utf-8'))
+            self.wfile.write(json.dumps(response, default=str).encode('utf-8'))
+
+        except Exception as e:
+            # Fallback error response
+            error_response = {
+                "status": "error",
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }
+            self.wfile.write(json.dumps(error_response).encode('utf-8'))
         return
 
     def do_POST(self):
