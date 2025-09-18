@@ -2,9 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 import sys
 import os
-import io
-import cgi
-from urllib.parse import parse_qs
+from datetime import datetime
 
 # Add the current directory to Python path
 current_dir = os.path.dirname(__file__)
@@ -51,7 +49,8 @@ class handler(BaseHTTPRequestHandler):
         if self.path == '/api/health':
             response = {
                 "status": "healthy",
-                "timestamp": "2025-01-18-v2",  # Force cache bust
+                "timestamp": datetime.now().isoformat(),  # Force cache bust with current time
+                "deployment_version": "v3.0",  # Version bump to force update
                 "ai_available": AI_AVAILABLE,
                 "import_status": IMPORT_STATUS,
                 "current_dir": current_dir,
@@ -69,7 +68,7 @@ class handler(BaseHTTPRequestHandler):
                 response["gemini_ai"] = "modules not loaded"
                 response["error"] = AI_ERROR
         else:
-            response = {"message": "API is running"}
+            response = {"message": "API is running", "version": "v3.0"}
 
         self.wfile.write(json.dumps(response).encode('utf-8'))
         return
