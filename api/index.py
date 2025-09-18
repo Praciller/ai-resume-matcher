@@ -7,17 +7,37 @@ import cgi
 from urllib.parse import parse_qs
 
 # Add the current directory to Python path
-sys.path.insert(0, os.path.dirname(__file__))
+current_dir = os.path.dirname(__file__)
+sys.path.insert(0, current_dir)
+
+# Test imports step by step
+IMPORT_STATUS = {}
+AI_AVAILABLE = False
+AI_ERROR = None
 
 try:
+    # Test basic imports first
+    import google.generativeai as genai
+    IMPORT_STATUS["google-generativeai"] = "OK"
+
+    from pypdf import PdfReader
+    IMPORT_STATUS["pypdf"] = "OK"
+
+    # Test core module imports
     from core.parser import parse_pdf_to_text, validate_pdf_file
+    IMPORT_STATUS["core.parser"] = "OK"
+
     from core.llm_extractor import extract_resume_data, compare_resume_to_jd, test_gemini_api
+    IMPORT_STATUS["core.llm_extractor"] = "OK"
+
     AI_AVAILABLE = True
     AI_ERROR = None
+
 except Exception as e:
     print(f"AI modules not available: {e}")
     AI_AVAILABLE = False
     AI_ERROR = str(e)
+    IMPORT_STATUS["error"] = str(e)
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -29,27 +49,24 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
 
         if self.path == '/api/health':
+            response = {
+                "status": "healthy",
+                "ai_available": AI_AVAILABLE,
+                "import_status": IMPORT_STATUS,
+                "current_dir": current_dir,
+                "python_path": sys.path[:3]  # Show first 3 entries
+            }
+
             if AI_AVAILABLE:
                 try:
                     gemini_status = test_gemini_api()
-                    response = {
-                        "status": "healthy",
-                        "gemini_ai": gemini_status.get("status", "checking"),
-                        "ai_modules": "loaded"
-                    }
+                    response["gemini_ai"] = gemini_status.get("status", "checking")
+                    response["gemini_message"] = gemini_status.get("message", "")
                 except Exception as e:
-                    response = {
-                        "status": "healthy",
-                        "gemini_ai": f"error: {str(e)}",
-                        "ai_modules": "loaded but api failed"
-                    }
+                    response["gemini_ai"] = f"error: {str(e)}"
             else:
-                response = {
-                    "status": "healthy",
-                    "gemini_ai": "modules not loaded",
-                    "ai_modules": "failed to import",
-                    "error": AI_ERROR
-                }
+                response["gemini_ai"] = "modules not loaded"
+                response["error"] = AI_ERROR
         else:
             response = {"message": "API is running"}
 
