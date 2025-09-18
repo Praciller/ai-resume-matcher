@@ -1,0 +1,17 @@
+John Doe
+Software Developer
+
+EXPERIENCE:
+- 3 years of full-stack development
+- Built e-commerce platforms using React and Node.js
+- Developed data analytics dashboards
+- Experience with Python, JavaScript, SQL, Docker
+
+EDUCATION:
+- Bachelor's in Computer Science
+
+SKILLS:
+- Python, JavaScript, React, Node.js
+- SQL, Docker, AWS, Git
+- Linux/Unix systems
+- Agile development

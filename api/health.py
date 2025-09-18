@@ -16,7 +16,11 @@ class handler(BaseHTTPRequestHandler):
             # Simple health check without Gemini for now
             response_body = {
                 "status": "healthy",
-                "gemini_ai": "checking"
+                "timestamp": "2025-01-18-v5.0",
+                "deployment_version": "v5.0",
+                "gemini_ai": "checking",
+                "has_gemini_key": bool(os.getenv('GEMINI_API_KEY')),
+                "message": "Deployment successful - health endpoint working!"
             }
 
             self.wfile.write(json.dumps(response_body).encode())

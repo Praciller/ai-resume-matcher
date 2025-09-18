@@ -15,10 +15,10 @@ class ApiService {
   static async screenResume(resumeFile, jobDescription) {
     try {
       const formData = new FormData();
-      formData.append("resume_file", resumeFile);
-      formData.append("jd_text", jobDescription);
+      formData.append("resume", resumeFile);
+      formData.append("jobDescription", jobDescription);
 
-      const response = await fetch(`${API_BASE_URL}/screen-resume`, {
+      const response = await fetch(`${API_BASE_URL}/api/screen-resume`, {
         method: "POST",
         body: formData,
       });
@@ -80,7 +80,7 @@ class ApiService {
    */
   static async checkHealth() {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`);
+      const response = await fetch(`${API_BASE_URL}/api/health`);
       return await response.json();
     } catch (error) {
       throw new Error("BACKEND UNAVAILABLE");
