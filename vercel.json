@@ -1,5 +1,16 @@
 {
   "buildCommand": "cd frontend && npm ci && npm run build",
   "outputDirectory": "frontend/build",
-  "installCommand": "cd frontend && npm ci"
+  "installCommand": "cd frontend && npm ci",
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.9"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    }
+  ]
 }
