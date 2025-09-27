@@ -1,14 +1,22 @@
-# Intelligent Resume Screener
+# 🤖 AI Resume Matcher
 
-An AI-powered full-stack application that automatically extracts information from resumes and matches them against job descriptions using Google Gemini AI.
+> **Intelligent Resume Screening with Google Gemini AI**
 
-## Features
+A modern, AI-powered resume screening application that analyzes resumes against job descriptions using Google's Gemini AI. Built with React, FastAPI, and shadcn/ui for a seamless user experience.
 
-- **PDF Resume Parsing**: Extract text content from PDF resumes
-- **AI-Powered Data Extraction**: Use Google Gemini AI to extract structured data (skills, experience, education, etc.)
-- **Job Matching**: Compare resume data against job descriptions with compatibility scoring (0-100)
-- **Brutalist UI Design**: Clean, functional interface with monospace fonts and high contrast
-- **Real-time Analysis**: Get instant match scores and detailed summaries
+![AI Resume Matcher](https://img.shields.io/badge/AI-Powered-blue?style=for-the-badge&logo=google&logoColor=white)
+![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+
+## ✨ Features
+
+- **🧠 AI-Powered Analysis**: Leverages Google Gemini AI for intelligent resume-job matching
+- **📊 Match Scoring**: Provides detailed compatibility scores (0-100)
+- **🎯 Skill Analysis**: Identifies matched skills and skill gaps
+- **📱 Modern UI**: Built with shadcn/ui and Tailwind CSS for a beautiful, responsive design
+- **🔍 Detailed Insights**: Comprehensive analysis with actionable recommendations
+- **⚡ Real-time Processing**: Fast PDF parsing and analysis
+- **🧪 Comprehensive Testing**: E2E, integration, and unit tests with Playwright and Jest
 
 ## Architecture
 
@@ -20,10 +28,11 @@ An AI-powered full-stack application that automatically extracts information fro
 
 ### Frontend (React)
 
-- **Brutalist Design**: Monospace fonts, black borders, no rounded corners
-- **Two-Panel Layout**: Job description input and results display
-- **Real-time Status**: Backend connection monitoring
-- **File Upload**: Drag-and-drop PDF resume upload
+- **Modern Design**: shadcn/ui components with Scaled theme
+- **Responsive Layout**: Card-based design that adapts to all screen sizes
+- **Real-time Status**: Backend connection monitoring with visual indicators
+- **File Upload**: Intuitive PDF resume upload with validation
+- **Accessibility**: WCAG compliant components with proper ARIA labels
 
 ## Quick Setup
 
@@ -181,17 +190,56 @@ Use the sample job description in `backend/dataset/sample_job_description.txt` f
 
 Place sample resume PDFs in `backend/dataset/resumes/` directory for testing purposes.
 
-## Design System
+## 🧪 Testing
 
-The application follows a brutalist design philosophy:
+The application includes comprehensive testing infrastructure:
 
-- **Typography**: Monospace fonts only (Courier New)
-- **Colors**: Pure black (#000000), white (#FFFFFF), light gray (#F5F5F5)
-- **Borders**: 4px solid black on all interactive elements
-- **Layout**: CSS Grid with 50/50 split panels
-- **Text**: UPPERCASE for all headings
-- **Buttons**: Black background with white text, instant color inversion on hover
-- **No**: border-radius, gradients, smooth transitions, or shadows
+### Test Suites
+
+- **E2E Tests (Playwright)**: Browser automation testing across Chrome, Firefox, and Safari
+- **Integration Tests (Jest)**: API service integration testing
+- **Unit Tests (Jest)**: Component and function behavior testing
+
+### Running Tests
+
+```bash
+cd frontend
+
+# Run all tests
+npm run test:all
+
+# Individual test suites
+npm run test:e2e          # Playwright E2E tests
+npm run test:unit         # Jest unit tests
+npm run test:integration  # Jest integration tests
+npm run test:coverage     # Generate coverage report
+
+# Interactive test modes
+npm run test:e2e:ui       # Playwright UI mode
+npm test                  # Jest watch mode
+```
+
+### Test Coverage
+
+The project maintains high test coverage with:
+
+- Component rendering and interaction tests
+- API service error handling tests
+- Cross-browser compatibility tests
+- Accessibility compliance tests
+- Responsive design tests
+
+## 🎨 Design System
+
+The application uses **shadcn/ui** with the **Scaled** theme, featuring:
+
+- **Modern Card-based Layout**: Clean, organized interface with proper spacing
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+- **Dark/Light Mode Support**: Automatic theme switching based on system preferences
+- **Accessible Components**: WCAG compliant UI elements with proper focus management
+- **Smooth Animations**: Polished user interactions with subtle transitions
+- **Typography**: Clean, readable fonts with proper hierarchy
+- **Color System**: Semantic color tokens for consistent theming
 
 ## Error Handling
 

@@ -242,3 +242,6 @@ temp_uploads/
 backend/dataset/resumes/*.pdf
 backend/dataset/data/*.json
 .vercel
+
+# Augment AI Assistant folder
+.augment/

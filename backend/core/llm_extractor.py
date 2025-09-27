@@ -101,23 +101,23 @@ def extract_resume_data(resume_text: str) -> Dict[str, Any]:
 
 def compare_resume_to_jd(resume_data: Dict[str, Any], jd_text: str) -> Dict[str, Any]:
     """
-    Compare resume data against job description and generate match score.
-    
+    Compare resume data against job description and generate comprehensive match analysis.
+
     Args:
         resume_data: Structured resume data from extract_resume_data
         jd_text: Job description text
-        
+
     Returns:
-        dict: Match analysis with score and summary
-        
+        dict: Enhanced match analysis with detailed recommendations and guidance
+
     Raises:
         Exception: If AI comparison fails
     """
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
-        
+
         prompt = f"""
-        Compare the following resume data against the job description and provide a detailed match analysis. Return ONLY a valid JSON object with no additional text.
+        Compare the following resume data against the job description and provide a comprehensive match analysis with actionable career guidance. Return ONLY a valid JSON object with no additional text.
 
         Resume Data:
         {json.dumps(resume_data, indent=2)}
@@ -133,7 +133,41 @@ def compare_resume_to_jd(resume_data: Dict[str, Any], jd_text: str) -> Dict[str,
             "skill_gaps": ["missing skills"],
             "experience_match": "analysis of experience alignment",
             "education_match": "analysis of education requirements",
-            "overall_recommendation": "hire/consider/reject with reasoning"
+            "overall_recommendation": "hire/consider/reject",
+            "detailed_recommendations": {{
+                "primary_recommendation": "detailed hiring recommendation with specific reasoning",
+                "improvement_areas": [
+                    {{
+                        "skill": "specific skill name",
+                        "importance": "high/medium/low",
+                        "current_level": "none/basic/intermediate/advanced",
+                        "target_level": "basic/intermediate/advanced/expert",
+                        "learning_path": "specific actionable steps to develop this skill",
+                        "estimated_timeline": "realistic timeframe (e.g., '2-3 months', '6-12 months')",
+                        "resources": ["specific learning resources, courses, or certifications"],
+                        "priority": number (1-10, where 1 is highest priority)
+                    }}
+                ],
+                "strengths_to_leverage": [
+                    {{
+                        "strength": "specific strength from resume",
+                        "relevance": "how this strength applies to the job",
+                        "enhancement_tips": "ways to better showcase or develop this strength"
+                    }}
+                ],
+                "career_guidance": {{
+                    "immediate_actions": ["actionable steps candidate can take right now"],
+                    "short_term_goals": ["goals for next 3-6 months"],
+                    "long_term_development": ["strategic career development advice"],
+                    "alternative_paths": ["related roles or career paths to consider"]
+                }},
+                "interview_preparation": {{
+                    "likely_questions": ["potential interview questions based on skill gaps"],
+                    "talking_points": ["how to discuss experience and skills effectively"],
+                    "red_flags_to_address": ["potential concerns employers might have"]
+                }}
+            }},
+            "justification": "comprehensive explanation of the scoring and recommendation"
         }}
 
         Scoring criteria:
@@ -142,13 +176,22 @@ def compare_resume_to_jd(resume_data: Dict[str, Any], jd_text: str) -> Dict[str,
         - Education (20%): Does education meet the job requirements?
         - Overall fit (10%): General alignment with job responsibilities
 
-        Be thorough in your analysis and provide specific examples.
+        Instructions for detailed recommendations:
+        1. Be specific and actionable in all suggestions
+        2. Prioritize skill gaps by importance to the role
+        3. Provide realistic timelines based on skill complexity
+        4. Include both free and paid learning resources
+        5. Consider the candidate's current experience level
+        6. Offer alternative career paths if the match is poor
+        7. Be encouraging while being honest about gaps
+        8. Focus on practical, implementable advice
+
         Return ONLY the JSON object, no explanations or additional text.
 
         JSON Response:"""
         
         response = model.generate_content(prompt)
-        
+
         # Parse the JSON response
         response_text = response.text.strip()
 
@@ -165,16 +208,35 @@ def compare_resume_to_jd(resume_data: Dict[str, Any], jd_text: str) -> Dict[str,
             response_text = response_text[start_idx:end_idx]
 
         match_analysis = json.loads(response_text)
-        
+
         # Validate and ensure required fields
         if "match_score" not in match_analysis:
             match_analysis["match_score"] = 0
         if "match_summary" not in match_analysis:
             match_analysis["match_summary"] = "Unable to generate match summary"
-        
+
+        # Ensure detailed_recommendations structure exists
+        if "detailed_recommendations" not in match_analysis:
+            match_analysis["detailed_recommendations"] = {
+                "primary_recommendation": "Unable to generate detailed recommendation",
+                "improvement_areas": [],
+                "strengths_to_leverage": [],
+                "career_guidance": {
+                    "immediate_actions": [],
+                    "short_term_goals": [],
+                    "long_term_development": [],
+                    "alternative_paths": []
+                },
+                "interview_preparation": {
+                    "likely_questions": [],
+                    "talking_points": [],
+                    "red_flags_to_address": []
+                }
+            }
+
         # Ensure match_score is within valid range
         match_analysis["match_score"] = max(0, min(100, int(match_analysis["match_score"])))
-        
+
         return match_analysis
         
     except json.JSONDecodeError as e:
