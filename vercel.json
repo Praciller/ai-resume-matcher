@@ -1,15 +1,10 @@
 {
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/build",
-  "installCommand": "cd frontend && npm install && cd ../backend && pip install -r requirements.txt",
-
+  "installCommand": "cd frontend && npm install",
   "functions": {
     "api/index.py": {
-      "runtime": "python3.12"
+      "runtime": "python3.9"
     }
-  },
-
-  "env": {
-    "GEMINI_API_KEY": "@gemini_api_key"
   }
 }
