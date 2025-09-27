@@ -2,270 +2,136 @@ from http.server import BaseHTTPRequestHandler
 import json
 import sys
 import os
-from datetime import datetime
-import traceback
 
-# Add the current directory to Python path
-current_dir = os.path.dirname(__file__)
-sys.path.insert(0, current_dir)
+# Add backend directory to Python path for imports
+backend_dir = os.path.join(os.path.dirname(__file__), '..', 'backend')
+sys.path.insert(0, backend_dir)
 
-# Test imports step by step with detailed error tracking
-IMPORT_STATUS = {}
-AI_AVAILABLE = False
-AI_ERROR = None
-
+# Import AI modules
 try:
-    # Test basic imports first
-    import google.generativeai as genai
-    IMPORT_STATUS["google-generativeai"] = "OK"
-
-    from pypdf import PdfReader
-    IMPORT_STATUS["pypdf"] = "OK"
-
-    # Test core module imports
     from core.parser import parse_pdf_to_text, validate_pdf_file
-    IMPORT_STATUS["core.parser"] = "OK"
-
-    from core.llm_extractor import extract_resume_data, compare_resume_to_jd, test_gemini_api
-    IMPORT_STATUS["core.llm_extractor"] = "OK"
-
+    from core.llm_extractor import extract_resume_data, compare_resume_to_jd
     AI_AVAILABLE = True
-    AI_ERROR = None
-
 except Exception as e:
-    error_details = {
-        "error": str(e),
-        "traceback": traceback.format_exc(),
-        "python_version": sys.version,
-        "current_dir": current_dir,
-        "sys_path": sys.path[:5]
-    }
-    print(f"AI modules not available: {error_details}")
+    print(f"AI modules not available: {e}")
     AI_AVAILABLE = False
-    AI_ERROR = error_details
-    IMPORT_STATUS["error"] = str(e)
-    IMPORT_STATUS["details"] = error_details
 
 class handler(BaseHTTPRequestHandler):
+    def _send_cors_headers(self):
+        """Send CORS headers for all responses"""
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
     def do_GET(self):
         try:
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self._send_cors_headers()
             self.end_headers()
 
             if self.path == '/api/health':
                 response = {
-                    "DEPLOYMENT_SUCCESSFUL": True,
                     "status": "healthy",
-                    "timestamp": datetime.now().isoformat(),
-                    "deployment_version": "v8.0-AGGRESSIVE-CACHE-BREAK",
-                    "deployment_timestamp": "2025-01-18T19:45:00Z",
-                    "cache_buster": f"BREAK_CACHE_{datetime.now().timestamp()}",
                     "ai_available": AI_AVAILABLE,
-                    "import_status": IMPORT_STATUS,
-                    "current_dir": current_dir,
-                    "python_path": sys.path[:3],
-                    "environment_vars": {
-                        "has_gemini_key": bool(os.getenv('GEMINI_API_KEY')),
-                        "gemini_key_length": len(os.getenv('GEMINI_API_KEY', '')) if os.getenv('GEMINI_API_KEY') else 0
-                    },
-                    "FORCE_UPDATE": "THIS_IS_A_NEW_DEPLOYMENT"
+                    "gemini_ai": "connected" if AI_AVAILABLE else "disconnected"
                 }
-
-                if AI_AVAILABLE:
-                    try:
-                        gemini_status = test_gemini_api()
-                        response["gemini_ai"] = gemini_status.get("status", "checking")
-                        response["gemini_message"] = gemini_status.get("message", "")
-                    except Exception as e:
-                        response["gemini_ai"] = f"error: {str(e)}"
-                else:
-                    response["gemini_ai"] = "modules not loaded"
-                    response["error"] = AI_ERROR
             else:
                 response = {
-                    "message": "AI Resume Matcher API - DEPLOYMENT SUCCESSFUL v8.0",
-                    "version": "v8.0-AGGRESSIVE-CACHE-BREAK",
+                    "message": "AI Resume Matcher API",
                     "status": "ready",
-                    "DEPLOYMENT_SUCCESSFUL": True,
-                    "timestamp": datetime.now().isoformat(),
                     "endpoints": ["/api/health", "/api/screen-resume"]
                 }
 
-            self.wfile.write(json.dumps(response, default=str).encode('utf-8'))
+            self.wfile.write(json.dumps(response).encode('utf-8'))
 
         except Exception as e:
-            # Fallback error response
-            error_response = {
-                "status": "error",
-                "error": str(e),
-                "traceback": traceback.format_exc()
-            }
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self._send_cors_headers()
+            self.end_headers()
+            error_response = {"status": "error", "error": str(e)}
             self.wfile.write(json.dumps(error_response).encode('utf-8'))
-        return
 
     def do_POST(self):
         try:
             if self.path == '/api/screen-resume':
                 response = self._process_resume_screening()
             else:
-                response = {"message": "POST endpoint"}
+                response = {"error": "Endpoint not found"}
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self._send_cors_headers()
             self.end_headers()
             self.wfile.write(json.dumps(response).encode('utf-8'))
 
         except Exception as e:
-            # Return error in the expected format to avoid JSON parsing issues
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self._send_cors_headers()
+            self.end_headers()
             error_response = {
                 "match_score": 0,
-                "match_summary": f"Error processing resume: {str(e)}",
-                "detailed_analysis": {
-                    "skill_matches": [],
-                    "skill_gaps": [],
-                    "experience_match": "Unable to analyze due to error",
-                    "education_match": "Unable to analyze due to error",
-                    "overall_recommendation": "Please try again or contact support"
-                }
+                "match_summary": f"Error: {str(e)}",
+                "detailed_analysis": {"skill_matches": [], "skill_gaps": []}
             }
-            self.send_response(200)  # Still return 200 to avoid frontend JSON parsing errors
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
             self.wfile.write(json.dumps(error_response).encode('utf-8'))
-        return
 
     def _process_resume_screening(self):
-        """Process resume screening with real AI integration."""
+        """Process resume screening with AI integration."""
         if not AI_AVAILABLE:
             return {
                 "match_score": 0,
-                "match_summary": f"AI processing modules are not available. Error: {AI_ERROR}",
-                "detailed_analysis": {
-                    "skill_matches": [],
-                    "skill_gaps": [],
-                    "experience_match": "AI modules not loaded",
-                    "education_match": "AI modules not loaded",
-                    "overall_recommendation": f"Cannot process - server configuration issue: {AI_ERROR}"
-                }
+                "match_summary": "AI modules not available",
+                "detailed_analysis": {"skill_matches": [], "skill_gaps": []}
             }
 
         try:
-            # Parse multipart form data
-            content_type = self.headers.get('Content-Type', '')
-            if not content_type.startswith('multipart/form-data'):
-                raise ValueError("Expected multipart/form-data")
-
-            # Get content length
+            # Simple multipart parsing
             content_length = int(self.headers.get('Content-Length', 0))
-            if content_length == 0:
-                raise ValueError("No data received")
-
-            # Read the request body
             post_data = self.rfile.read(content_length)
 
-            # Parse the multipart data
-            boundary = content_type.split('boundary=')[1]
-            if boundary.startswith('"') and boundary.endswith('"'):
-                boundary = boundary[1:-1]  # Remove quotes if present
-            boundary = boundary.encode()
+            # Extract boundary
+            content_type = self.headers.get('Content-Type', '')
+            boundary = content_type.split('boundary=')[1].strip('"').encode()
 
+            # Split by boundary and extract data
             parts = post_data.split(b'--' + boundary)
-
             resume_file_data = None
             job_description = None
 
             for part in parts:
-                if b'Content-Disposition' in part and len(part.strip()) > 0:
-                    # Look for file upload (resume)
-                    if (b'name="resume"' in part or b'name="resumeFile"' in part or
-                        b'filename=' in part):
-                        # Extract file data
-                        header_end = part.find(b'\r\n\r\n')
-                        if header_end != -1:
-                            resume_file_data = part[header_end + 4:]
-                            # Clean up the data
-                            while resume_file_data.endswith(b'\r\n'):
-                                resume_file_data = resume_file_data[:-2]
-                            while resume_file_data.endswith(b'\n'):
-                                resume_file_data = resume_file_data[:-1]
-                            while resume_file_data.endswith(b'\r'):
-                                resume_file_data = resume_file_data[:-1]
+                if b'name="resume_file"' in part or b'filename=' in part:
+                    header_end = part.find(b'\r\n\r\n')
+                    if header_end != -1:
+                        resume_file_data = part[header_end + 4:].rstrip(b'\r\n')
+                elif b'name="jd_text"' in part:
+                    header_end = part.find(b'\r\n\r\n')
+                    if header_end != -1:
+                        job_description = part[header_end + 4:].decode('utf-8').strip()
 
-                    # Look for job description text
-                    elif (b'name="jobDescription"' in part or b'name="jd_text"' in part or
-                          b'name="job_description"' in part):
-                        # Extract job description text
-                        header_end = part.find(b'\r\n\r\n')
-                        if header_end != -1:
-                            job_description = part[header_end + 4:].decode('utf-8', errors='ignore').strip()
-                            # Clean up the text
-                            while job_description.endswith('\r\n'):
-                                job_description = job_description[:-2]
-                            while job_description.endswith('\n'):
-                                job_description = job_description[:-1]
-                            while job_description.endswith('\r'):
-                                job_description = job_description[:-1]
+            if not resume_file_data or not job_description:
+                raise ValueError("Missing resume file or job description")
 
-            if not resume_file_data:
-                raise ValueError("No resume file found in request")
-
-            if not job_description:
-                raise ValueError("No job description found in request")
-
-            # Validate PDF file
+            # Process the resume
             if not validate_pdf_file(resume_file_data):
-                raise ValueError("Invalid PDF file or file is corrupted")
+                raise ValueError("Invalid PDF file")
 
-            # Step 1: Extract text from PDF
             resume_text = parse_pdf_to_text(resume_file_data)
-
-            # Step 2: Extract structured data from resume
             resume_data = extract_resume_data(resume_text)
+            result = compare_resume_to_jd(resume_data, job_description)
 
-            # Step 3: Compare resume to job description
-            comparison_result = compare_resume_to_jd(resume_data, job_description)
-
-            # Format response to match frontend expectations
-            response = {
-                "match_score": comparison_result.get("match_score", 0),
-                "match_summary": comparison_result.get("match_summary", "Analysis completed"),
-                "detailed_analysis": {
-                    "skill_matches": comparison_result.get("skill_matches", []),
-                    "skill_gaps": comparison_result.get("skill_gaps", []),
-                    "experience_match": comparison_result.get("experience_match", ""),
-                    "education_match": comparison_result.get("education_match", ""),
-                    "overall_recommendation": comparison_result.get("overall_recommendation", "")
-                }
-            }
-
-            return response
+            return result
 
         except Exception as e:
-            # Return a structured error response
             return {
                 "match_score": 0,
-                "match_summary": f"Processing failed: {str(e)}",
-                "detailed_analysis": {
-                    "skill_matches": [],
-                    "skill_gaps": [],
-                    "experience_match": "Error during processing",
-                    "education_match": "Error during processing",
-                    "overall_recommendation": "Unable to complete analysis - please try again"
-                }
+                "match_summary": f"Error: {str(e)}",
+                "detailed_analysis": {"skill_matches": [], "skill_gaps": []}
             }
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self._send_cors_headers()
         self.end_headers()
-        return
