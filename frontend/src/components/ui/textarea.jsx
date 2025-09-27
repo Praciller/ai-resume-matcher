@@ -1,6 +1,11 @@
 import * as React from "react";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-import { cn } from "../../lib/utils";
+// Inline utility function to avoid import issues
+function cn(...inputs) {
+  return twMerge(clsx(inputs));
+}
 
 const Textarea = React.forwardRef(({ className, ...props }, ref) => {
   return (
