@@ -245,3 +245,17 @@ backend/dataset/data/*.json
 
 # Augment AI Assistant folder
 .augment/
+
+# Test and development files
+test_*.py
+test_*.txt
+temp_*.txt
+quick_test.*
+*_test_*
+sample_*.pdf
+Reseme-*.pdf
+
+# Deployment and configuration files (keep templates)
+deploy-to-vercel.js
+SETUP_API_KEY.md
+VERCEL_DEPLOYMENT.md
