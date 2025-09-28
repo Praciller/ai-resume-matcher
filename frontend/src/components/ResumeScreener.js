@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import ApiService from "../services/api";
 import { Button } from "./ui/button";
 import {
@@ -98,11 +98,11 @@ const ResumeScreener = () => {
               <BarChart3 className="h-8 w-8" />
               AI Resume Matcher
             </CardTitle>
-            <CardDescription className="flex items-center justify-center gap-2 text-base">
+            <div className="flex items-center justify-center gap-2 text-base text-muted-foreground">
               {getStatusIcon()}
               Backend Status:{" "}
               {backendStatus.charAt(0).toUpperCase() + backendStatus.slice(1)}
-            </CardDescription>
+            </div>
           </CardHeader>
         </Card>
       </div>

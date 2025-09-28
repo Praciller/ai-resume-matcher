@@ -1,16 +1,16 @@
 module.exports = {
-  testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
-  moduleNameMapping: {
-    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+  testEnvironment: "jsdom",
+  setupFilesAfterEnv: ["<rootDir>/src/setupTests.js"],
+  moduleNameMapper: {
+    "\\.(css|less|scss|sass)$": "identity-obj-proxy",
   },
   transform: {
-    '^.+\\.(js|jsx)$': 'babel-jest',
+    "^.+\\.(js|jsx)$": "babel-jest",
   },
   collectCoverageFrom: [
-    'src/**/*.{js,jsx}',
-    '!src/index.js',
-    '!src/setupTests.js',
+    "src/**/*.{js,jsx}",
+    "!src/index.js",
+    "!src/setupTests.js",
   ],
   coverageThreshold: {
     global: {
@@ -21,7 +21,8 @@ module.exports = {
     },
   },
   testMatch: [
-    '<rootDir>/tests/**/*.test.{js,jsx}',
-    '<rootDir>/src/**/*.test.{js,jsx}',
+    "<rootDir>/tests/**/*.test.{js,jsx}",
+    "<rootDir>/src/**/*.test.{js,jsx}",
   ],
+  testPathIgnorePatterns: ["/node_modules/"],
 };
