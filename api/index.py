@@ -120,7 +120,22 @@ class handler(BaseHTTPRequestHandler):
 
             resume_text = parse_pdf_to_text(resume_file_data)
             resume_data = extract_resume_data(resume_text)
-            result = compare_resume_to_jd(resume_data, job_description)
+            ai_result = compare_resume_to_jd(resume_data, job_description)
+
+            # Wrap the AI result in the expected structure for frontend
+            result = {
+                "match_score": ai_result.get("match_score", 0),
+                "match_summary": ai_result.get("match_summary", ""),
+                "detailed_analysis": {
+                    "skill_matches": ai_result.get("skill_matches", []),
+                    "skill_gaps": ai_result.get("skill_gaps", []),
+                    "experience_match": ai_result.get("experience_match", ""),
+                    "education_match": ai_result.get("education_match", ""),
+                    "overall_recommendation": ai_result.get("overall_recommendation", ""),
+                    "detailed_recommendations": ai_result.get("detailed_recommendations", {}),
+                    "justification": ai_result.get("justification", "")
+                }
+            }
 
             return result
 

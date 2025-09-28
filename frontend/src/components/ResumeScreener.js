@@ -69,6 +69,7 @@ const ResumeScreener = () => {
 
     try {
       const data = await ApiService.screenResume(resumeFile, jobDescription);
+      console.log("API Response:", JSON.stringify(data, null, 2));
       setResults(data);
     } catch (err) {
       setError(err.message.toUpperCase());
