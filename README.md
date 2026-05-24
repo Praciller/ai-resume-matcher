@@ -4,6 +4,10 @@ AI-powered resume and job-description matching platform. The app parses PDF resu
 
 Live demo: https://ai-resume-matcher-chi.vercel.app
 
+## Preview
+
+![AI Resume Matcher live demo](docs/screenshots/live-demo.jpg)
+
 ## Role Fit
 
 | Target role | Evidence shown in this repo |
