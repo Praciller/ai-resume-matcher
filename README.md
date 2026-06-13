@@ -1,152 +1,205 @@
 # AI Resume Matcher
 
-AI-powered resume and job-description matching platform. The app parses PDF resumes, compares them against job descriptions with Gemini, and returns match scoring, skill gaps, career recommendations, and interview preparation guidance.
+Compare a PDF resume with a job description and receive a validated match report: fit score, evidence, skill gaps, actions, learning priorities, interview questions, and neutral risk flags.
 
-Live demo: https://ai-resume-matcher-chi.vercel.app
+**Live demo:** [ai-resume-matcher-chi.vercel.app](https://ai-resume-matcher-chi.vercel.app)
+**Health:** [ai-resume-matcher-chi.vercel.app/api/health](https://ai-resume-matcher-chi.vercel.app/api/health)
 
-## Preview
+![Structured AI resume analysis report](docs/screenshots/analysis-report.png)
 
-![AI Resume Matcher live demo](docs/screenshots/live-demo.jpg)
-
-## Role Fit
-
-| Target role | Evidence shown in this repo |
-| --- | --- |
-| AI Engineer | LLM-based document analysis, structured extraction, scoring workflow, API integration |
-| GenAI Engineer | Gemini prompt design, structured response contract, career guidance generation |
-| Data Analyst | Skill-gap analysis, match scoring, explainable summary, ranked recommendations |
-| Full-Stack / Frontend | React UI, Python API, Vercel deployment, file upload workflow |
-
-## AI Problem Solved
-
-Resume screening is hard because resumes and job descriptions are unstructured documents. This project converts both into structured comparison output so a user can see fit score, matched skills, missing skills, learning priorities, and interview preparation points.
-
-## Architecture
+## Product Flow
 
 ```text
 PDF resume + job description
-  -> React upload and JD form
-  -> Python/Vercel API endpoint
-  -> PDF text extraction
-  -> Gemini analysis prompt
-  -> Structured JSON response
-  -> Match score, skill gaps, recommendations
-  -> React results dashboard
+  -> React validation and upload
+  -> FastAPI /api/analyze
+  -> PDF text extraction and limits
+  -> 9arm-first provider routing
+  -> strict Pydantic schema validation
+  -> score, evidence, gaps, actions, interview prep
+  -> safe React report rendering
 ```
 
-## AI and Data Flow
+## Highlights
 
-- Extracts text from uploaded PDF resumes.
-- Accepts raw job-description text from the user.
-- Sends both documents to Gemini with a structured matching rubric.
-- Produces score, summary, matched skills, missing skills, development plan, and interview guidance.
-- Displays the result in a recruiter/candidate-friendly UI.
-
-## Key Engineering Highlights
-
-- End-to-end document AI workflow from file upload to recommendation output.
-- Structured response design for reliable UI rendering.
-- Serverless Python backend for AI analysis.
-- React frontend with clear state handling and user feedback.
-- Health endpoint for checking backend/API readiness.
-- Test commands for unit, integration, E2E, and coverage workflows.
+- Validates PDF extension, MIME type, file size, extractable text, and JD length.
+- Keeps provider keys server-side.
+- Routes `9arm -> Gemini Lite -> Gemini Flash -> Groq -> Cerebras`.
+- Rejects malformed or low-quality model output before rendering.
+- Supports deterministic mock and sample modes without API quota.
+- Caches repeated analyses in process with a configurable TTL.
+- Uses one FastAPI app for local development and Vercel.
+- Includes unit, integration, API, schema, fallback, build, and browser tests.
 
 ## Tech Stack
 
-| Layer | Tools |
+| Layer | Technology |
 | --- | --- |
-| Frontend | React 18, shadcn/ui, Tailwind CSS |
-| Backend | Python, Vercel serverless functions, FastAPI-compatible local backend |
-| AI | Google Gemini 2.0 Flash |
-| Parsing | PDF text extraction |
-| Testing | Jest, React Testing Library, Playwright |
+| Frontend | React 18, Vite 8, Tailwind CSS, Lucide |
+| Backend | Python 3.12, FastAPI, Pydantic v2, HTTPX |
+| PDF | pypdf |
+| AI | 9arm, Gemini, Groq, Cerebras |
+| Testing | pytest, Vitest, Testing Library, Playwright |
 | Deployment | Vercel |
 
-## Evaluation and Testing
+## Local Setup
 
-Recommended evaluation cases:
+```powershell
+git clone https://github.com/Praciller/ai-resume-matcher.git
+cd ai-resume-matcher
+Copy-Item .env.example .env
+```
 
-| Case | Expected behavior |
-| --- | --- |
-| Strong resume / matching JD | High score, accurate strengths, few gaps |
-| Weak resume / senior JD | Lower score, clear skill gaps, realistic guidance |
-| Missing JD details | Asks for or infers with caution, avoids unsupported claims |
-| Long resume | Extracts relevant skills and does not over-focus on noise |
-| Non-technical resume | Returns useful analysis without crashing |
+Add provider keys to the gitignored `.env`. At least one provider key is required unless `MOCK_AI_MODE=true`.
 
-Available frontend checks:
+Backend:
 
-```bash
+```powershell
+python -m venv backend/.venv
+backend/.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
+backend/.venv/Scripts/python.exe -m uvicorn backend.main:app --reload --port 8000
+```
+
+Frontend:
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+Open `http://localhost:5173`. Vite proxies `/api` to `http://127.0.0.1:8000`.
+
+## Environment
+
+See [.env.example](.env.example) for the complete contract.
+
+Required for primary routing:
+
+```env
+AI_PROVIDER_ORDER=9arm,gemini,groq,cerebras
+NINEARM_API_KEY=
+NINEARM_RESUME_MODEL=qwen3.6-35b-a3b
+```
+
+Gemini requirements-compatible defaults:
+
+```env
+GEMINI_API_KEY=
+GEMINI_RESUME_MODEL=gemini-2.5-flash-lite
+GEMINI_RESUME_FALLBACK_MODEL=gemini-2.5-flash
+GEMINI_TIMEOUT_SECONDS=30
+GEMINI_MAX_RETRIES=1
+```
+
+Never put API keys in frontend variables or commit them to Git. Rotate any key that has ever appeared in repository history.
+
+## API
+
+### `GET /api/health`
+
+Returns mode, configured providers, primary provider, and input limits. It does not spend AI quota.
+
+### `POST /api/analyze`
+
+Multipart fields:
+
+- `resume_file`: PDF
+- `job_description`: job-description text
+
+Response follows the strict schema documented in [docs/api.md](docs/api.md), including:
+
+```json
+{
+  "match_score": 78,
+  "summary": "Evidence-based role fit summary.",
+  "matched_skills": [],
+  "missing_skills": [],
+  "strengths": [],
+  "weaknesses": [],
+  "recommendations": [],
+  "learning_plan": [],
+  "interview_questions": [],
+  "risk_flags": [],
+  "model_used": "qwen3.6-35b-a3b",
+  "provider_used": "9arm",
+  "cached": false,
+  "analysis_id": "string",
+  "warnings": []
+}
+```
+
+### `POST /api/mock-analyze`
+
+Returns a deterministic sample report without a resume or provider call.
+
+## Mock AI Mode
+
+Set:
+
+```env
+MOCK_AI_MODE=true
+```
+
+The full PDF and JD validation path still runs. Analysis becomes deterministic and local.
+
+## Testing
+
+```powershell
+backend/.venv/Scripts/python.exe -m pytest -q backend/tests
+
 cd frontend
 npm run test:unit
 npm run test:integration
 npm run test:e2e
-npm run test:coverage
+npm run build
+npm audit --audit-level=high
 ```
 
-Backend health check:
-
-```text
-GET /api/health
-```
-
-## Local Setup
-
-```bash
-git clone https://github.com/Praciller/ai-resume-matcher.git
-cd ai-resume-matcher
-```
-
-Install frontend dependencies:
-
-```bash
-cd frontend
-npm install
-```
-
-Install backend dependencies for local development:
-
-```bash
-cd ../backend
-pip install -r requirements.txt
-```
-
-Create `.env` with:
-
-```env
-GEMINI_API_KEY=your_google_gemini_key
-```
-
-Run locally:
-
-```bash
-# Terminal 1
-cd backend
-python main.py
-
-# Terminal 2
-cd frontend
-npm start
-```
+See [docs/testing.md](docs/testing.md) and [docs/verification.md](docs/verification.md).
 
 ## Deployment
 
-The production app is deployed on Vercel. Required environment variable:
+Vercel builds `frontend/dist` and exposes the FastAPI app from `api/index.py`.
 
-```env
-GEMINI_API_KEY=your_google_gemini_key
-```
+Configure the server-side variables from `.env.example` in Vercel. Do not add `VITE_*` secrets. After deployment, verify:
 
-Verify deployment by checking:
+1. `/` loads.
+2. `/api/health` reports the intended provider order.
+3. Sample mode renders.
+4. A text-based PDF completes real analysis.
+5. Invalid and scanned PDFs fail with controlled messages.
 
-- Frontend loads.
-- `/api/health` returns healthy status.
-- PDF upload works.
-- Gemini analysis returns structured results.
+## Known Limitations
 
-## Why This Repo Matters
+- No OCR for scanned or image-only PDFs.
+- Cache is process-local and can reset between serverless instances.
+- Match score is model-generated, not calibrated against hiring outcomes.
+- Provider quotas, model availability, and latency can change.
+- Resume and JD text are sent to the first available configured provider.
 
-This repo supports AI Engineer and GenAI Engineer applications because it demonstrates practical document understanding, prompt-to-structured-output design, and user-facing AI workflow delivery. It also supports data analyst positioning because the output is essentially a structured gap analysis and recommendation report.
+## Future Improvements
+
+- Add rubric-based score evaluation fixtures.
+- Add OCR as an explicit opt-in path.
+- Add multiple-resume comparison.
+- Add saved analysis history with user-controlled retention.
+- Export reports to PDF.
+- Add a local embedding similarity baseline.
+
+## Resume Bullet
+
+Modernized an AI resume matching platform using React, FastAPI, multi-provider structured analysis, PDF validation, Pydantic schema enforcement, provider fallback, mock mode, and Vercel deployment verification to generate explainable skill-gap and interview-preparation reports.
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [API](docs/api.md)
+- [Model routing](docs/model_routing.md)
+- [Gemini analysis](docs/gemini_resume_analysis.md)
+- [Testing](docs/testing.md)
+- [Verification](docs/verification.md)
+- [Portfolio review](PORTFOLIO_REVIEW.md)
 
 ## License
 

@@ -1,15 +1,8 @@
 {
   "short_name": "AI Resume Matcher",
   "name": "AI Resume Matcher - Match your resume with job descriptions",
-  "icons": [
-    {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    }
-  ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#9a4427",
+  "background_color": "#f7f4ed"
 }

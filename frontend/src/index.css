@@ -4,56 +4,438 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.75rem;
+    --background: 0.975 0.012 84;
+    --foreground: 0.245 0.025 68;
+    --card: 0.995 0.006 84;
+    --card-foreground: 0.245 0.025 68;
+    --primary: 0.49 0.14 39;
+    --primary-foreground: 0.985 0.008 84;
+    --secondary: 0.925 0.025 75;
+    --secondary-foreground: 0.29 0.03 68;
+    --muted: 0.945 0.015 82;
+    --muted-foreground: 0.49 0.025 70;
+    --accent: 0.91 0.045 55;
+    --accent-foreground: 0.29 0.03 68;
+    --destructive: 0.52 0.18 28;
+    --destructive-foreground: 0.985 0.008 84;
+    --border: 0.86 0.025 78;
+    --input: 0.83 0.025 78;
+    --ring: 0.49 0.14 39;
+    --radius: 0.6rem;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    min-width: 320px;
+    margin: 0;
+    font-family:
+      Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  textarea {
+    @apply w-full rounded-md border border-input bg-card px-3 py-3 text-sm leading-6 outline-none transition-colors;
+    min-height: 15rem;
+    resize: vertical;
+  }
+
+  textarea:focus-visible {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply mx-auto min-h-screen w-full max-w-[1500px] px-4 py-4 sm:px-6 sm:py-6 lg:px-8;
+  }
+
+  .topbar {
+    @apply mb-4 flex items-center gap-3 border-b pb-4 sm:mb-6;
+  }
+
+  .brand-mark {
+    @apply grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground;
+  }
+
+  .brand-mark svg {
+    @apply h-5 w-5;
+  }
+
+  .topbar h1 {
+    @apply text-xl font-bold tracking-tight sm:text-2xl;
+  }
+
+  .eyebrow {
+    @apply text-[0.7rem] font-bold uppercase tracking-[0.18em] text-muted-foreground;
+  }
+
+  .connection-state {
+    @apply ml-auto flex min-h-11 items-center gap-2 rounded-full border bg-card px-3 text-xs font-semibold;
+  }
+
+  .connection-state svg {
+    @apply h-4 w-4;
+  }
+
+  .connection-state.connected svg {
+    color: oklch(0.53 0.13 145);
+  }
+
+  .connection-state.disconnected svg {
+    @apply text-destructive;
+  }
+
+  .workspace {
+    @apply overflow-hidden rounded-xl border bg-card lg:grid lg:grid-cols-[minmax(320px,0.78fr)_minmax(0,1.45fr)];
+    min-height: calc(100vh - 7.5rem);
+    box-shadow: 0 20px 60px oklch(0.3 0.03 70 / 0.08);
+  }
+
+  .input-panel {
+    @apply border-b bg-muted/50 p-5 sm:p-7 lg:border-b-0 lg:border-r lg:p-8;
+  }
+
+  .panel-intro {
+    @apply mb-7;
+  }
+
+  .panel-intro h2,
+  .empty-report h2 {
+    @apply mt-2 text-2xl font-bold tracking-tight sm:text-3xl;
+  }
+
+  .panel-intro > p:last-child,
+  .empty-report > p {
+    @apply mt-3 max-w-[65ch] text-sm leading-6 text-muted-foreground;
+  }
+
+  .input-panel form {
+    @apply space-y-6;
+  }
+
+  .field-group {
+    @apply space-y-2;
+  }
+
+  .field-heading {
+    @apply flex items-end justify-between gap-4;
+  }
+
+  .field-heading label {
+    @apply text-sm font-bold;
+  }
+
+  .field-heading span,
+  .field-help {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .field-heading .count-warning {
+    @apply font-semibold text-destructive;
+  }
+
+  .upload-control {
+    @apply flex min-h-12 cursor-pointer items-center gap-3 rounded-md border border-dashed border-input bg-card px-4 py-3 text-sm font-semibold transition-colors hover:border-primary hover:bg-accent/40 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2;
+  }
+
+  .upload-control svg {
+    @apply h-5 w-5 text-primary;
+  }
+
+  .upload-control input {
+    @apply sr-only;
+  }
+
+  .upload-control.field-error {
+    @apply border-destructive;
+  }
+
+  .file-summary {
+    @apply grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md bg-secondary px-3 py-2 text-xs;
+  }
+
+  .file-summary svg {
+    @apply h-4 w-4;
+  }
+
+  .file-summary span:nth-child(2) {
+    @apply truncate font-semibold;
+  }
+
+  .field-message {
+    @apply text-xs font-semibold text-destructive;
+  }
+
+  .sample-mode {
+    @apply mt-7 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-3 border-t pt-6 sm:grid-cols-[auto_1fr_auto];
+  }
+
+  .sample-mode > svg {
+    @apply h-5 w-5 text-primary;
+  }
+
+  .sample-mode strong {
+    @apply text-sm;
+  }
+
+  .sample-mode p {
+    @apply text-xs leading-5 text-muted-foreground;
+  }
+
+  .sample-mode button {
+    @apply col-span-2 w-full sm:col-span-1 sm:w-auto;
+  }
+
+  .error-state {
+    @apply mb-6 flex gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm;
+  }
+
+  .error-state > svg {
+    @apply mt-0.5 h-5 w-5 shrink-0 text-destructive;
+  }
+
+  .error-state strong {
+    @apply font-bold;
+  }
+
+  .error-state p {
+    @apply mt-1 leading-5 text-muted-foreground;
+  }
+
+  .report-panel {
+    @apply min-w-0 scroll-mt-4 bg-card;
+  }
+
+  .empty-report {
+    @apply flex min-h-[32rem] flex-col justify-center p-7 sm:p-10 lg:p-14;
+  }
+
+  .empty-lines {
+    @apply mt-10 space-y-3;
+  }
+
+  .empty-lines span {
+    @apply block h-2 rounded-full bg-secondary;
+  }
+
+  .empty-lines span:nth-child(1) {
+    width: 72%;
+  }
+
+  .empty-lines span:nth-child(2) {
+    width: 94%;
+  }
+
+  .empty-lines span:nth-child(3) {
+    width: 58%;
+  }
+
+  .loading-state {
+    @apply space-y-4 p-7 sm:p-10 lg:p-14;
+  }
+
+  .skeleton-line,
+  .skeleton-block {
+    @apply animate-pulse rounded-md bg-secondary;
+  }
+
+  .skeleton-line {
+    @apply h-4;
+  }
+
+  .skeleton-short {
+    width: 35%;
+  }
+
+  .skeleton-grid {
+    @apply grid gap-4 pt-6 sm:grid-cols-2;
+  }
+
+  .skeleton-block {
+    @apply h-44;
+  }
+
+  .report-section {
+    @apply border-b p-7 sm:p-10 lg:p-12;
+  }
+
+  .section-heading {
+    @apply mb-6 flex items-start justify-between gap-5;
+  }
+
+  .section-heading h2 {
+    @apply mt-1 text-xl font-bold tracking-tight sm:text-2xl;
+  }
+
+  .score-badge {
+    @apply shrink-0 rounded-full bg-primary px-3 py-2 text-sm font-bold text-primary-foreground;
+  }
+
+  .score-track {
+    @apply h-2 overflow-hidden rounded-full bg-secondary;
+  }
+
+  .score-track span {
+    @apply block h-full rounded-full bg-primary transition-[width] duration-500;
+  }
+
+  .report-summary {
+    @apply mt-5 max-w-[72ch] text-sm leading-7 text-muted-foreground sm:text-base;
+  }
+
+  .two-column-list,
+  .evidence-columns {
+    @apply grid gap-8 md:grid-cols-2;
+  }
+
+  .two-column-list h3,
+  .evidence-columns h3 {
+    @apply mb-3 text-sm font-bold;
+  }
+
+  .tag-list {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .tag-list li {
+    @apply inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 text-sm;
+  }
+
+  .tag-list svg {
+    @apply h-3.5 w-3.5;
+  }
+
+  .tag-list .matched {
+    border-color: oklch(0.72 0.09 145);
+    background: oklch(0.95 0.035 145);
+  }
+
+  .tag-list .missing {
+    border-color: oklch(0.78 0.08 62);
+    background: oklch(0.96 0.035 70);
+  }
+
+  .plain-list {
+    @apply space-y-2 text-sm leading-6 text-muted-foreground;
+  }
+
+  .plain-list li {
+    @apply relative pl-4;
+  }
+
+  .plain-list li::before {
+    content: "";
+    @apply absolute left-0 top-[0.65rem] h-1.5 w-1.5 rounded-full bg-primary;
+  }
+
+  .action-list {
+    @apply mt-8 divide-y border-y;
+  }
+
+  .action-list li {
+    @apply grid grid-cols-[2.5rem_1fr] gap-3 py-4;
+  }
+
+  .action-list span {
+    @apply text-xs font-bold tracking-widest text-primary;
+  }
+
+  .action-list p {
+    @apply text-sm leading-6;
+  }
+
+  .learning-list {
+    @apply divide-y border-y;
+  }
+
+  .learning-list article {
+    @apply py-5;
+  }
+
+  .learning-title {
+    @apply mb-2 flex items-center justify-between gap-4;
+  }
+
+  .learning-title h3 {
+    @apply font-bold;
+  }
+
+  .priority {
+    @apply rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-widest;
+  }
+
+  .priority.high {
+    background: oklch(0.92 0.065 32);
+    color: oklch(0.42 0.14 28);
+  }
+
+  .priority.medium {
+    background: oklch(0.93 0.055 78);
+    color: oklch(0.42 0.09 65);
+  }
+
+  .priority.low {
+    @apply bg-secondary text-secondary-foreground;
+  }
+
+  .learning-list p {
+    @apply text-sm leading-6 text-muted-foreground;
+  }
+
+  .learning-list strong {
+    @apply mt-2 block text-sm leading-6;
+  }
+
+  .question-list {
+    @apply space-y-3;
+  }
+
+  .question-list li {
+    @apply grid grid-cols-[2rem_1fr] gap-3 rounded-md bg-muted px-4 py-3;
+  }
+
+  .question-list span {
+    @apply grid h-7 w-7 place-items-center rounded-full bg-card text-xs font-bold;
+  }
+
+  .question-list p {
+    @apply pt-1 text-sm leading-6;
+  }
+
+  .report-notes {
+    background: oklch(0.97 0.025 72);
+  }
+
+  .report-meta {
+    @apply flex flex-wrap gap-x-5 gap-y-2 bg-foreground px-7 py-4 text-xs text-background/75 sm:px-10 lg:px-12;
+  }
+
+  .empty-copy {
+    @apply text-sm text-muted-foreground;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -1,183 +1,81 @@
-/**
- * Integration tests for API service
- * These tests verify the API service functionality
- */
+import { afterEach, describe, expect, test, vi } from "vitest";
 
-import ApiService from '../../src/services/api';
+import ApiService from "../../src/services/api";
 
-// Mock fetch for testing
-global.fetch = jest.fn();
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
-describe('ApiService Integration Tests', () => {
-  beforeEach(() => {
-    fetch.mockClear();
+describe("ApiService", () => {
+  test("checks the health endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: "healthy", mode: "live" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await ApiService.checkHealth();
+
+    expect(result.status).toBe("healthy");
+    expect(fetchMock).toHaveBeenCalledWith("/api/health");
   });
 
-  describe('checkHealth', () => {
-    test('should return health status when backend is available', async () => {
-      const mockResponse = {
-        status: 'healthy',
-        gemini_ai: 'connected'
-      };
-
-      fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await ApiService.checkHealth();
-      expect(result).toEqual(mockResponse);
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/health')
-      );
+  test("posts resume and job description to analyze endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ match_score: 80 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(["resume"], "candidate.pdf", {
+      type: "application/pdf",
     });
 
-    test('should throw error when backend is unavailable', async () => {
-      fetch.mockRejectedValueOnce(new Error('Network error'));
+    await ApiService.analyzeResume(file, "Senior React engineer role");
 
-      await expect(ApiService.checkHealth()).rejects.toThrow('BACKEND UNAVAILABLE');
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/analyze",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.any(FormData),
+      })
+    );
+    const formData = fetchMock.mock.calls[0][1].body;
+    expect(formData.get("resume_file")).toBe(file);
+    expect(formData.get("job_description")).toBe("Senior React engineer role");
+  });
+
+  test("posts to deterministic sample endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ provider_used: "mock" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await ApiService.runSample();
+
+    expect(result.provider_used).toBe("mock");
+    expect(fetchMock).toHaveBeenCalledWith("/api/mock-analyze", {
+      method: "POST",
     });
   });
 
-  describe('screenResume', () => {
-    test('should successfully screen resume with valid inputs', async () => {
-      const mockFile = new File(['test content'], 'test-resume.pdf', {
-        type: 'application/pdf',
-      });
-      const jobDescription = 'Software Engineer position';
-      const mockResponse = {
-        match_score: 85,
-        match_summary: 'Good match for the position',
-        detailed_analysis: {
-          skill_matches: ['JavaScript', 'React'],
-          skill_gaps: ['Python'],
-          overall_recommendation: 'Recommended for interview'
-        }
-      };
-
-      fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await ApiService.screenResume(mockFile, jobDescription);
-      
-      expect(result).toEqual(mockResponse);
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/screen-resume'),
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.any(FormData),
-        })
-      );
-    });
-
-    test('should handle API errors gracefully', async () => {
-      const mockFile = new File(['test content'], 'test-resume.pdf', {
-        type: 'application/pdf',
-      });
-      const jobDescription = 'Software Engineer position';
-
-      fetch.mockResolvedValueOnce({
+  test("returns controlled API detail", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
         ok: false,
-        status: 400,
-        statusText: 'Bad Request',
-        json: async () => ({ detail: 'Invalid file format' }),
-      });
+        json: async () => ({ detail: "Resume MIME type must be application/pdf." }),
+      })
+    );
 
-      await expect(
-        ApiService.screenResume(mockFile, jobDescription)
-      ).rejects.toThrow('Invalid file format');
-    });
-
-    test('should handle network errors', async () => {
-      const mockFile = new File(['test content'], 'test-resume.pdf', {
-        type: 'application/pdf',
-      });
-      const jobDescription = 'Software Engineer position';
-
-      fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
-
-      await expect(
-        ApiService.screenResume(mockFile, jobDescription)
-      ).rejects.toThrow('UNABLE TO CONNECT TO SERVER');
-    });
+    await expect(ApiService.runSample()).rejects.toThrow(
+      "Resume MIME type must be application/pdf."
+    );
   });
 
-  describe('extractResumeData', () => {
-    test('should extract resume data successfully', async () => {
-      const mockFile = new File(['test content'], 'test-resume.pdf', {
-        type: 'application/pdf',
-      });
-      const mockResponse = {
-        extracted_data: {
-          name: 'John Doe',
-          email: 'john@example.com',
-          skills: ['JavaScript', 'React']
-        },
-        raw_text_preview: 'John Doe Software Engineer...'
-      };
+  test("translates network failure", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
 
-      fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await ApiService.extractResumeData(mockFile);
-      
-      expect(result).toEqual(mockResponse);
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/extract-resume'),
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.any(FormData),
-        })
-      );
-    });
-
-    test('should handle extraction errors', async () => {
-      const mockFile = new File(['test content'], 'test-resume.pdf', {
-        type: 'application/pdf',
-      });
-
-      fetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-        json: async () => ({ detail: 'Failed to process PDF' }),
-      });
-
-      await expect(
-        ApiService.extractResumeData(mockFile)
-      ).rejects.toThrow('Failed to process PDF');
-    });
-  });
-
-  describe('API URL Configuration', () => {
-    test('should use environment variable for API URL', () => {
-      // This test verifies that the API service uses the correct base URL
-      const originalEnv = process.env.REACT_APP_API_URL;
-      process.env.REACT_APP_API_URL = 'https://test-api.example.com';
-
-      // Re-import to get updated environment variable
-      jest.resetModules();
-      const ApiServiceWithNewEnv = require('../../src/services/api').default;
-
-      // The actual URL construction happens inside the methods,
-      // so we need to test it indirectly through a mock call
-      fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'healthy' }),
-      });
-
-      ApiServiceWithNewEnv.checkHealth();
-
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('https://test-api.example.com')
-      );
-
-      // Restore original environment
-      process.env.REACT_APP_API_URL = originalEnv;
-    });
+    await expect(ApiService.checkHealth()).rejects.toThrow("Backend unavailable");
   });
 });

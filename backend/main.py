@@ -1,224 +1,155 @@
-"""
-FastAPI application for Intelligent Resume Screener.
-"""
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+"""FastAPI application for resume and job-description analysis."""
+
+from __future__ import annotations
+
 import logging
-import os
-from typing import Dict, Any
-from dotenv import load_dotenv
+from typing import Annotated
 
-from core.parser import parse_pdf_to_text, validate_pdf_file
-from core.llm_extractor import extract_resume_data, compare_resume_to_jd, test_gemini_connection
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 
-# Load environment variables
-load_dotenv()
+from backend.core.analysis import (
+    AIAnalyzer,
+    AnalysisUnavailableError,
+    ProviderResult,
+    build_mock_analysis,
+    make_analysis_id,
+    sample_analysis,
+    to_response,
+)
+from backend.core.cache import AnalysisCache
+from backend.core.config import get_settings
+from backend.core.parser import (
+    InputValidationError,
+    parse_pdf_to_text,
+    validate_job_description,
+    validate_pdf_upload,
+)
+from backend.core.schema import AnalysisResponse, HealthResponse
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
+settings = get_settings()
+cache = AnalysisCache()
+analyzer = AIAnalyzer(settings)
 
-# Create FastAPI app
 app = FastAPI(
-    title="Intelligent Resume Screener",
-    description="AI-powered resume screening and job matching application",
-    version="1.0.0"
+    title="AI Resume Matcher API",
+    description="Validated resume and job-description matching API.",
+    version="2.0.0",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=list(settings.frontend_origins),
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
-# Get environment variables
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://*.vercel.app").split(",")
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
-# Configure CORS for production
-if ENVIRONMENT == "production":
-    # In production, allow Vercel domains and Railway
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],  # Allow all origins for Railway deployment
-        allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["*"],
-    )
-else:
-    # In development, use specific origins
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=ALLOWED_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+@app.get("/", include_in_schema=False)
+def root() -> dict[str, str]:
+    return {"name": "AI Resume Matcher API", "status": "ready"}
+
+
+@app.get("/api/health", response_model=HealthResponse)
+@app.get("/health", response_model=HealthResponse, include_in_schema=False)
+def health() -> HealthResponse:
+    providers = settings.configured_providers()
+    mode = "mock" if settings.mock_ai_mode else ("live" if providers else "unconfigured")
+    return HealthResponse(
+        status="healthy",
+        mode=mode,
+        configured_providers=providers,
+        primary_provider=providers[0] if providers else None,
+        max_resume_file_mb=settings.max_resume_file_mb,
+        max_resume_chars=settings.max_resume_chars,
+        max_jd_chars=settings.max_jd_chars,
     )
 
 
-@app.get("/")
-async def root():
-    """Health check endpoint."""
-    return {"message": "Intelligent Resume Screener API", "status": "running"}
+@app.post("/api/mock-analyze", response_model=AnalysisResponse)
+def mock_analyze() -> AnalysisResponse:
+    result = ProviderResult(sample_analysis(), "mock", "deterministic-sample-v1")
+    return to_response(
+        result=result,
+        analysis_id="sample-demo",
+        cached=False,
+        warnings=["Sample data only. No resume was uploaded."],
+    )
 
 
-@app.get("/health")
-async def health_check():
-    """Detailed health check including AI service status."""
+@app.post("/api/analyze", response_model=AnalysisResponse)
+@app.post("/api/screen-resume", response_model=AnalysisResponse, include_in_schema=False)
+async def analyze(
+    resume_file: Annotated[UploadFile, File(description="PDF resume")],
+    job_description: Annotated[str | None, Form()] = None,
+    jd_text: Annotated[str | None, Form()] = None,
+) -> AnalysisResponse:
     try:
-        gemini_status = test_gemini_connection()
-        return {
-            "status": "healthy",
-            "gemini_ai": "connected" if gemini_status else "disconnected"
-        }
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return JSONResponse(
-            status_code=503,
-            content={"status": "unhealthy", "error": str(e)}
+        submitted_jd = job_description if job_description is not None else jd_text
+        if submitted_jd is None:
+            raise InputValidationError("Job description is required.")
+        file_bytes = await resume_file.read(settings.max_resume_file_bytes + 1)
+        validate_pdf_upload(
+            filename=resume_file.filename,
+            content_type=resume_file.content_type,
+            file_bytes=file_bytes,
+            max_bytes=settings.max_resume_file_bytes,
+        )
+        parsed_resume = parse_pdf_to_text(file_bytes, settings.max_resume_chars)
+        parsed_jd = validate_job_description(submitted_jd, settings.max_jd_chars)
+    except InputValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    warnings: list[str] = []
+    if parsed_resume.truncated:
+        warnings.append(
+            f"Resume text was limited to {settings.max_resume_chars} characters."
+        )
+    if parsed_jd.truncated:
+        warnings.append(
+            f"Job description was limited to {settings.max_jd_chars} characters."
         )
 
+    analysis_id = make_analysis_id(parsed_resume.text, parsed_jd.text)
+    if settings.cache_enabled:
+        cached = cache.get(analysis_id)
+        if cached:
+            return to_response(
+                ProviderResult(cached.result, cached.provider, cached.model),
+                analysis_id=analysis_id,
+                cached=True,
+                warnings=warnings,
+            )
 
-@app.post("/screen-resume")
-async def screen_resume(
-    resume_file: UploadFile = File(..., description="PDF resume file"),
-    jd_text: str = Form(..., description="Job description text")
-) -> Dict[str, Any]:
-    """
-    Screen a resume against a job description.
-    
-    Args:
-        resume_file: Uploaded PDF resume file
-        jd_text: Job description text to match against
-        
-    Returns:
-        dict: Match score and detailed analysis
-        
-    Raises:
-        HTTPException: For various error conditions
-    """
     try:
-        # Validate file type
-        if not resume_file.filename.lower().endswith('.pdf'):
-            raise HTTPException(
-                status_code=400,
-                detail="Only PDF files are supported"
+        if settings.mock_ai_mode:
+            provider_result = ProviderResult(
+                build_mock_analysis(parsed_resume.text, parsed_jd.text),
+                "mock",
+                "deterministic-local-v1",
             )
-        
-        # Read file bytes
-        file_bytes = await resume_file.read()
-        
-        # Validate PDF file
-        if not validate_pdf_file(file_bytes):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid PDF file or file is corrupted"
+        else:
+            provider_result = analyzer.analyze(
+                parsed_resume.text, parsed_jd.text
             )
-        
-        # Validate job description
-        if not jd_text or len(jd_text.strip()) < 10:
-            raise HTTPException(
-                status_code=400,
-                detail="Job description must be at least 10 characters long"
-            )
-        
-        logger.info(f"Processing resume: {resume_file.filename}")
-        
-        # Step 1: Extract text from PDF
-        try:
-            resume_text = parse_pdf_to_text(file_bytes)
-            logger.info("Successfully extracted text from PDF")
-        except Exception as e:
-            logger.error(f"PDF parsing failed: {str(e)}")
-            raise HTTPException(
-                status_code=422,
-                detail=f"Failed to extract text from PDF: {str(e)}"
-            )
-        
-        # Step 2: Extract structured data from resume
-        try:
-            resume_data = extract_resume_data(resume_text)
-            logger.info("Successfully extracted resume data using AI")
-        except Exception as e:
-            logger.error(f"Resume data extraction failed: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to extract resume data: {str(e)}"
-            )
-        
-        # Step 3: Compare resume to job description
-        try:
-            match_analysis = compare_resume_to_jd(resume_data, jd_text)
-            logger.info(f"Match analysis completed with score: {match_analysis.get('match_score', 0)}")
-        except Exception as e:
-            logger.error(f"Resume comparison failed: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to compare resume to job description: {str(e)}"
-            )
-        
-        # Return the required format
-        return {
-            "match_score": match_analysis.get("match_score", 0),
-            "match_summary": match_analysis.get("match_summary", "No summary available"),
-            "detailed_analysis": match_analysis  # Include full analysis for debugging
-        }
-        
-    except HTTPException:
-        # Re-raise HTTP exceptions as is
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error in screen_resume: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error: {str(e)}"
+    except AnalysisUnavailableError as exc:
+        logger.warning("Analysis unavailable for id=%s", analysis_id)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    if settings.cache_enabled:
+        cache.set(
+            key=analysis_id,
+            result=provider_result.analysis,
+            provider=provider_result.provider,
+            model=provider_result.model,
+            ttl_seconds=settings.cache_ttl_seconds,
         )
 
-
-@app.post("/extract-resume")
-async def extract_resume_only(
-    resume_file: UploadFile = File(..., description="PDF resume file")
-) -> Dict[str, Any]:
-    """
-    Extract structured data from resume only (for testing purposes).
-    
-    Args:
-        resume_file: Uploaded PDF resume file
-        
-    Returns:
-        dict: Extracted resume data
-    """
-    try:
-        # Validate file type
-        if not resume_file.filename.lower().endswith('.pdf'):
-            raise HTTPException(
-                status_code=400,
-                detail="Only PDF files are supported"
-            )
-        
-        # Read and validate file
-        file_bytes = await resume_file.read()
-        if not validate_pdf_file(file_bytes):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid PDF file or file is corrupted"
-            )
-        
-        # Extract text and data
-        resume_text = parse_pdf_to_text(file_bytes)
-        resume_data = extract_resume_data(resume_text)
-        
-        return {
-            "extracted_data": resume_data,
-            "raw_text_preview": resume_text[:500] + "..." if len(resume_text) > 500 else resume_text
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error in extract_resume_only: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to extract resume data: {str(e)}"
-        )
-
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+    return to_response(
+        provider_result,
+        analysis_id=analysis_id,
+        cached=False,
+        warnings=warnings,
+    )

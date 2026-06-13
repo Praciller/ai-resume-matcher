@@ -1,58 +1,57 @@
-/**
- * API service for communicating with the backend
- */
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
-// Use environment variable for API URL, fallback to Vercel API for production
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === "production" ? "/api" : "http://localhost:8000");
+async function parseResponse(response) {
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.detail || "The analysis service could not complete this request."
+    );
+  }
+  return payload;
+}
 
 class ApiService {
-  /**
-   * Screen a resume against a job description
-   * @param {File} resumeFile - PDF file
-   * @param {string} jobDescription - Job description text
-   * @returns {Promise<Object>} - Match results
-   */
-  static async screenResume(resumeFile, jobDescription) {
-    try {
-      const formData = new FormData();
-      formData.append("resume_file", resumeFile);
-      formData.append("jd_text", jobDescription);
+  static async analyzeResume(resumeFile, jobDescription) {
+    const formData = new FormData();
+    formData.append("resume_file", resumeFile);
+    formData.append("job_description", jobDescription);
 
-      const response = await fetch(`${API_BASE_URL}/screen-resume`, {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/analyze`, {
         method: "POST",
         body: formData,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.detail || `HTTP ${response.status}: ${response.statusText}`
-        );
-      }
-
-      return await response.json();
+      return await parseResponse(response);
     } catch (error) {
-      if (error.name === "TypeError" && error.message.includes("fetch")) {
-        throw new Error(
-          "UNABLE TO CONNECT TO SERVER. PLEASE ENSURE BACKEND IS RUNNING."
-        );
+      if (error instanceof TypeError) {
+        throw new Error("Cannot reach the analysis API. Check the backend server.");
       }
       throw error;
     }
   }
 
-  /**
-   * Check backend health
-   * @returns {Promise<Object>} - Health status
-   */
+  static async runSample() {
+    const response = await fetch(`${API_BASE_URL}/api/mock-analyze`, {
+      method: "POST",
+    });
+    return parseResponse(response);
+  }
+
   static async checkHealth() {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`);
-      return await response.json();
+      const response = await fetch(`${API_BASE_URL}/api/health`);
+      return await parseResponse(response);
     } catch (error) {
-      throw new Error("BACKEND UNAVAILABLE");
+      if (error instanceof TypeError) {
+        throw new Error("Backend unavailable");
+      }
+      throw error;
     }
   }
 }

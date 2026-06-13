@@ -1,123 +1,65 @@
-const { test, expect } = require("@playwright/test");
+import { expect, test } from "@playwright/test";
 
-test.describe("Resume Screener Application", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-  });
+const health = {
+  status: "healthy",
+  mode: "live",
+  configured_providers: ["9arm"],
+  primary_provider: "9arm",
+  max_resume_file_mb: 5,
+  max_resume_chars: 20_000,
+  max_jd_chars: 20_000,
+};
 
-  test("should display the main page with correct title", async ({ page }) => {
-    // Check if the page loads correctly
-    await expect(page).toHaveTitle(/AI Resume Matcher/);
+const sample = {
+  match_score: 78,
+  summary:
+    "The candidate aligns well with the role and has useful evidence for the core requirements.",
+  matched_skills: ["React", "Python"],
+  missing_skills: ["AWS"],
+  strengths: ["Built production interfaces"],
+  weaknesses: ["Cloud impact is unclear"],
+  recommendations: ["Add a quantified AWS deployment project to the resume."],
+  learning_plan: [],
+  interview_questions: ["How did you validate your API in production?"],
+  risk_flags: [],
+  model_used: "deterministic-sample-v1",
+  provider_used: "mock",
+  cached: false,
+  analysis_id: "sample-demo",
+  warnings: ["Sample data only. No resume was uploaded."],
+};
 
-    // Check if the main heading is visible
-    await expect(
-      page.getByRole("heading", { name: /AI Resume Matcher/i })
-    ).toBeVisible();
-  });
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/health", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(health) })
+  );
+  await page.route("**/api/mock-analyze", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(sample) })
+  );
+  await page.goto("/");
+});
 
-  test("should show backend status", async ({ page }) => {
-    // Check if backend status is displayed
-    await expect(page.getByText(/Backend Status:/i)).toBeVisible();
+test("loads core form and status", async ({ page }) => {
+  await expect(page).toHaveTitle("AI Resume Matcher");
+  await expect(page.getByRole("heading", { name: "AI Resume Matcher" })).toBeVisible();
+  await expect(page.getByLabel("Resume PDF")).toBeVisible();
+  await expect(page.getByLabel("Job description")).toBeVisible();
+  await expect(page.getByText("API ready")).toBeVisible();
+});
 
-    // The status should be one of: Connected, Disconnected, or Checking
-    const statusElement = page.getByText(/Backend Status:/i);
-    await expect(statusElement).toBeVisible();
-  });
+test("sample mode renders structured result", async ({ page }) => {
+  await page.getByRole("button", { name: "Run sample" }).click();
 
-  test("should have upload form elements", async ({ page }) => {
-    // Check if job description textarea is present
-    await expect(page.getByLabel(/Job Description/i)).toBeVisible();
+  await expect(page.getByText("78/100")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Skills" })).toBeVisible();
+  await expect(page.getByText("React")).toBeVisible();
+  await expect(page.getByText("Questions to rehearse")).toBeVisible();
+});
 
-    // Check if file upload input is present
-    await expect(page.getByLabel(/Resume File/i)).toBeVisible();
+test("mobile layout remains usable", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
 
-    // Check if submit button is present
-    await expect(
-      page.getByRole("button", { name: /Analyze Resume/i })
-    ).toBeVisible();
-  });
-
-  test("should show validation error for empty form submission", async ({
-    page,
-  }) => {
-    // Try to submit empty form
-    await page.getByRole("button", { name: /Analyze Resume/i }).click();
-
-    // Check if form validation prevents submission (HTML5 validation)
-    const jobDescriptionField = page.getByLabel(/Job Description/i);
-    await expect(jobDescriptionField).toHaveAttribute("required");
-
-    const fileField = page.getByLabel(/Resume File/i);
-    await expect(fileField).toHaveAttribute("required");
-  });
-
-  test("should accept job description input", async ({ page }) => {
-    const jobDescription =
-      "Software Engineer position requiring React and Node.js experience";
-
-    // Fill in job description
-    await page.getByLabel(/Job Description/i).fill(jobDescription);
-
-    // Verify the text was entered
-    await expect(page.getByLabel(/Job Description/i)).toHaveValue(
-      jobDescription
-    );
-  });
-
-  test("should show file name when PDF is selected", async ({ page }) => {
-    // Note: This test would need a sample PDF file to work properly
-    // For now, we'll just check that the file input accepts PDF files
-    const fileInput = page.getByLabel(/Resume File/i);
-    await expect(fileInput).toHaveAttribute("accept", ".pdf");
-  });
-
-  test("should have responsive design elements", async ({ page }) => {
-    // Check if the layout adapts to different screen sizes
-    await page.setViewportSize({ width: 768, height: 1024 });
-
-    // Main elements should still be visible on tablet size
-    await expect(
-      page.getByRole("heading", { name: /AI Resume Matcher/i })
-    ).toBeVisible();
-    await expect(page.getByLabel(/Job Description/i)).toBeVisible();
-
-    // Check mobile size
-    await page.setViewportSize({ width: 375, height: 667 });
-    await expect(
-      page.getByRole("heading", { name: /AI Resume Matcher/i })
-    ).toBeVisible();
-  });
-
-  test("should display match score section", async ({ page }) => {
-    // Check if match score card is present
-    await expect(page.getByText(/Match Score/i)).toBeVisible();
-
-    // Check if it shows the default state
-    await expect(page.getByText(/--\/100/)).toBeVisible();
-  });
-
-  test("should display analysis section", async ({ page }) => {
-    // Check if detailed analysis card is present
-    await expect(
-      page.getByRole("heading", { name: /Detailed Analysis/i })
-    ).toBeVisible();
-
-    // Check if it shows the default state
-    await expect(
-      page.getByText(/Upload a resume to see detailed analysis/i)
-    ).toBeVisible();
-  });
-
-  test("should have proper accessibility attributes", async ({ page }) => {
-    // Check if form labels are properly associated
-    const jobDescriptionLabel = page.locator('label[for="job-description"]');
-    const jobDescriptionInput = page.getByLabel(/Job Description/i);
-
-    await expect(jobDescriptionLabel).toBeVisible();
-    await expect(jobDescriptionInput).toBeVisible();
-
-    // Check if buttons have proper accessible names
-    const submitButton = page.getByRole("button", { name: /Analyze Resume/i });
-    await expect(submitButton).toBeVisible();
-  });
+  await expect(page.getByRole("heading", { name: "Compare your evidence" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Run sample" })).toBeVisible();
+  await expect(page.getByLabel("Job description")).toBeVisible();
 });

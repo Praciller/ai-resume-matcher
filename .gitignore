@@ -1,5 +1,7 @@
 # Environment Variables
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -61,6 +63,7 @@ ipython_config.py
 
 # pyenv
 .python-version
+!.python-version
 
 # pipenv
 Pipfile.lock
@@ -241,6 +244,8 @@ temp_uploads/
 # Sample data (keep structure but ignore actual files)
 backend/dataset/resumes/*.pdf
 backend/dataset/data/*.json
+backend/dataset/data/
+backend/dataset/resumes/Resume.csv
 .vercel
 
 # Augment AI Assistant folder
