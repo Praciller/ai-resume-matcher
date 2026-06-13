@@ -264,3 +264,4 @@ Reseme-*.pdf
 deploy-to-vercel.js
 SETUP_API_KEY.md
 VERCEL_DEPLOYMENT.md
+.vercel

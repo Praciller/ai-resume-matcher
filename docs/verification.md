@@ -35,10 +35,14 @@ Verification date: June 13, 2026.
 
 Before modernization, the live alias loaded and `/api/health` returned `200`, but the old health route only proved module import and the old UI/API contract remained deployed.
 
-Production verification must be refreshed after deployment:
+Deployment `dpl_72nawM1Vt8mZrE1MD8Mgpeqv6ekB` was verified at [ai-resume-matcher-psi-one.vercel.app](https://ai-resume-matcher-psi-one.vercel.app).
 
-- frontend version matches current screenshot
-- health lists provider routing
-- sample mode renders
-- real PDF path returns the new schema
-- no raw provider errors appear
+| Check | Result |
+| --- | --- |
+| Deployment state | Ready |
+| Frontend | `200` |
+| `/api/health` | `healthy`, live mode, 9arm primary |
+| `/api/mock-analyze` | `200`, validated sample schema |
+| Real PDF `/api/analyze` | `200`, validated schema |
+| Production provider | 9arm / `qwen3.6-35b-a3b` |
+| Provider errors exposed | None |

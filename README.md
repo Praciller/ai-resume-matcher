@@ -2,8 +2,8 @@
 
 Compare a PDF resume with a job description and receive a validated match report: fit score, evidence, skill gaps, actions, learning priorities, interview questions, and neutral risk flags.
 
-**Live demo:** [ai-resume-matcher-chi.vercel.app](https://ai-resume-matcher-chi.vercel.app)
-**Health:** [ai-resume-matcher-chi.vercel.app/api/health](https://ai-resume-matcher-chi.vercel.app/api/health)
+**Live demo:** [ai-resume-matcher-psi-one.vercel.app](https://ai-resume-matcher-psi-one.vercel.app)
+**Health:** [ai-resume-matcher-psi-one.vercel.app/api/health](https://ai-resume-matcher-psi-one.vercel.app/api/health)
 
 ![Structured AI resume analysis report](docs/screenshots/analysis-report.png)
 

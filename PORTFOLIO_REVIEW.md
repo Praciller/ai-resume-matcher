@@ -2,9 +2,9 @@
 
 ## Verdict
 
-**Ready after production deployment and leaked-key rotation.**
+**Production-ready with one security follow-up: revoke the previously exposed Gemini key.**
 
-The local project now demonstrates a credible document-AI workflow rather than a prompt wrapper. The remaining release blockers are operational: deploy the current code and revoke the key previously committed in `.env.example`.
+The deployed project demonstrates a credible document-AI workflow rather than a prompt wrapper. Production health, sample analysis, and real PDF analysis were verified on June 13, 2026.
 
 ## Initial Audit
 
@@ -48,7 +48,6 @@ The local project now demonstrates a credible document-AI workflow rather than a
 ## Remaining Gaps
 
 - Rotate the previously committed Gemini key. Removing it from the current tree does not revoke it.
-- Deploy and re-run production PDF analysis.
 - Add automated axe or Lighthouse accessibility checks.
 - Add evaluator fixtures before presenting match score as calibrated.
 - Add OCR only as an explicit future feature.
