@@ -80,6 +80,10 @@ Get-Content reports/local_match_report.md
 Expected fixture result: `69/100`, with matched and missing criteria listed in
 `reports/local_match_report.md`. The generated report is gitignored.
 
+No real resumes or bulk resume datasets are tracked. The demo and tests use
+`backend/dataset/synthetic_resume.txt`; optional local datasets belong under the
+ignored `backend/dataset/resumes/` directory.
+
 ## Environment
 
 See [.env.example](.env.example) for the complete contract.

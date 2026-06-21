@@ -248,10 +248,9 @@ reports/
 *.key
 
 # Sample data (keep structure but ignore actual files)
-backend/dataset/resumes/*.pdf
 backend/dataset/data/*.json
 backend/dataset/data/
-backend/dataset/resumes/Resume.csv
+backend/dataset/resumes/
 .vercel
 
 # Augment AI Assistant folder

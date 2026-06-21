@@ -3,6 +3,11 @@
 The default path uses synthetic fixtures and deterministic local matching. It
 requires no provider key, hosted service, or private resume.
 
+Keep optional bulk or private datasets under the ignored
+`backend/dataset/resumes/` directory. Repository checks reject tracked files in
+that directory and files larger than 5 MiB; the default review uses
+`backend/dataset/synthetic_resume.txt`.
+
 ## Windows PowerShell
 
 From the repository root:

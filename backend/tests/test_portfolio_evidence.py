@@ -31,3 +31,20 @@ def test_guardrails_reject_private_resume_and_secret(tmp_path: Path, monkeypatch
         "unsafe tracked artifact: uploads/private-resume.pdf",
         "possible credential assignment: .env.example",
     ]
+
+
+def test_guardrails_reject_resume_datasets_and_large_files(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(guardrails, "ROOT", tmp_path)
+    monkeypatch.setattr(guardrails, "MAX_TRACKED_BYTES", 3)
+    resume_dataset = tmp_path / "backend/dataset/resumes/Resume.csv"
+    oversized = tmp_path / "backend/dataset/data.csv"
+    resume_dataset.parent.mkdir(parents=True)
+    resume_dataset.write_text("safe synthetic fixture", encoding="utf-8")
+    oversized.write_bytes(b"1234")
+
+    failures = guardrails.violations([resume_dataset, oversized])
+
+    assert failures == [
+        "unsafe tracked artifact: backend/dataset/resumes/Resume.csv",
+        "oversized tracked artifact: backend/dataset/data.csv",
+    ]

@@ -10,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FORBIDDEN_PARTS = {"uploads", "temp_uploads", "extracted_text", "node_modules"}
 FORBIDDEN_SUFFIXES = {".db", ".sqlite", ".sqlite3", ".pem", ".key", ".pdf"}
+PRIVATE_DATA_PREFIXES = {("backend", "dataset", "resumes")}
+MAX_TRACKED_BYTES = 5 * 1024 * 1024
 SECRET_ASSIGNMENT = re.compile(
     r"(?im)^(?:[A-Z0-9_]*(?:API_KEY|SECRET|TOKEN|PASSWORD))[ \t]*=[ \t]*([^\s#]+)"
 )
@@ -33,9 +35,16 @@ def violations(paths: list[Path]) -> list[str]:
     failures: list[str] = []
     for path in paths:
         relative = path.relative_to(ROOT)
-        parts = {part.casefold() for part in relative.parts}
+        relative_parts = tuple(part.casefold() for part in relative.parts)
+        parts = set(relative_parts)
         if parts & FORBIDDEN_PARTS or path.suffix.casefold() in FORBIDDEN_SUFFIXES:
             failures.append(f"unsafe tracked artifact: {relative.as_posix()}")
+            continue
+        if any(relative_parts[: len(prefix)] == prefix for prefix in PRIVATE_DATA_PREFIXES):
+            failures.append(f"unsafe tracked artifact: {relative.as_posix()}")
+            continue
+        if path.stat().st_size > MAX_TRACKED_BYTES:
+            failures.append(f"oversized tracked artifact: {relative.as_posix()}")
             continue
         if path.name == ".env":
             failures.append("tracked environment file: .env")
