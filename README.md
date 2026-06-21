@@ -47,16 +47,15 @@ PDF resume + job description
 ```powershell
 git clone https://github.com/Praciller/ai-resume-matcher.git
 cd ai-resume-matcher
-Copy-Item .env.example .env
 ```
 
-Add provider keys to the gitignored `.env`. At least one provider key is required unless `MOCK_AI_MODE=true`.
+No API key or real resume is required. Mock analysis is the default.
 
 Backend:
 
 ```powershell
 python -m venv backend/.venv
-backend/.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
+backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
 backend/.venv/Scripts/python.exe -m uvicorn backend.main:app --reload --port 8000
 ```
 
@@ -70,11 +69,23 @@ npm run dev
 
 Open `http://localhost:5173`. Vite proxies `/api` to `http://127.0.0.1:8000`.
 
+Generate deterministic evidence from synthetic text fixtures:
+
+```powershell
+$env:PYTHONPATH="."
+backend/.venv/Scripts/python.exe scripts/generate_local_match_report.py
+Get-Content reports/local_match_report.md
+```
+
+Expected fixture result: `69/100`, with matched and missing criteria listed in
+`reports/local_match_report.md`. The generated report is gitignored.
+
 ## Environment
 
 See [.env.example](.env.example) for the complete contract.
 
-Required for primary routing:
+External provider routing is optional and explicitly enabled by setting
+`MOCK_AI_MODE=false` plus a server-side key:
 
 ```env
 AI_PROVIDER_ORDER=9arm,gemini,groq,cerebras
@@ -135,7 +146,7 @@ Returns a deterministic sample report without a resume or provider call.
 
 ## Mock AI Mode
 
-Set:
+Mock mode is the default. The explicit setting is:
 
 ```env
 MOCK_AI_MODE=true
@@ -143,10 +154,20 @@ MOCK_AI_MODE=true
 
 The full PDF and JD validation path still runs. Analysis becomes deterministic and local.
 
+## Safety and scope
+
+- This is a portfolio decision-support demo, not an automated hiring authority.
+- Synthetic samples are the default reviewer inputs.
+- The scoring heuristic is not calibrated to hiring outcomes.
+- The project has not been fairness or compliance audited.
+- Do not upload sensitive resumes to a public deployment.
+
 ## Testing
 
 ```powershell
 backend/.venv/Scripts/python.exe -m pytest -q backend/tests
+backend/.venv/Scripts/python.exe -m ruff check backend scripts
+backend/.venv/Scripts/python.exe scripts/check_repo_guardrails.py
 
 cd frontend
 npm run test:unit
@@ -177,6 +198,8 @@ Configure the server-side variables from `.env.example` in Vercel. Do not add `V
 - Match score is model-generated, not calibrated against hiring outcomes.
 - Provider quotas, model availability, and latency can change.
 - Resume and JD text are sent to the first available configured provider.
+- Keyword coverage misses synonyms, context, proficiency, recency, and transferable skills.
+- Results support human review only and must not determine candidate selection.
 
 ## Future Improvements
 
@@ -200,6 +223,9 @@ Modernized an AI resume matching platform using React, FastAPI, multi-provider s
 - [Testing](docs/testing.md)
 - [Verification](docs/verification.md)
 - [Portfolio review](PORTFOLIO_REVIEW.md)
+- [Local review](docs/local_review.md)
+- [Portfolio reviewer flow](docs/portfolio_review.md)
+- [Matching methodology](docs/matching_methodology.md)
 
 ## License
 

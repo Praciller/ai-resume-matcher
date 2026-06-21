@@ -90,7 +90,7 @@ def get_settings() -> Settings:
         max_resume_file_bytes=max_file_mb * 1024 * 1024,
         max_resume_chars=_as_int("MAX_RESUME_CHARS", 20_000, minimum=1_000),
         max_jd_chars=_as_int("MAX_JD_CHARS", 20_000, minimum=1_000),
-        mock_ai_mode=_as_bool("MOCK_AI_MODE", False),
+        mock_ai_mode=_as_bool("MOCK_AI_MODE", True),
         cache_enabled=_as_bool("ENABLE_AI_ANALYSIS_CACHE", True),
         cache_ttl_seconds=_as_int(
             "AI_ANALYSIS_CACHE_TTL_SECONDS", 86_400, minimum=60

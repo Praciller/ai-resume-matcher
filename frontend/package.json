@@ -31,7 +31,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run src/__tests__ tests/integration",
     "test:unit": "vitest run src/__tests__",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test --project=chromium",

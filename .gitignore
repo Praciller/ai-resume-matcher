@@ -226,6 +226,7 @@ test-results.xml
 
 # Local development files
 *.local
+ai-resume-matcher-audit-requirements.md
 
 # Backup files
 *.bak
@@ -240,6 +241,11 @@ test-results.xml
 # Uploaded files (for testing)
 uploads/
 temp_uploads/
+extracted_text/
+reports/
+*.pdf
+*.pem
+*.key
 
 # Sample data (keep structure but ignore actual files)
 backend/dataset/resumes/*.pdf
@@ -251,12 +257,9 @@ backend/dataset/resumes/Resume.csv
 # Augment AI Assistant folder
 .augment/
 
-# Test and development files
-test_*.py
-test_*.txt
+# Local scratch files
 temp_*.txt
 quick_test.*
-*_test_*
 sample_*.pdf
 Reseme-*.pdf
 

@@ -1,0 +1,15 @@
+SYNTHETIC SAMPLE RESUME - Jordan Example
+
+Summary
+Software engineer with six years of experience building tested web applications and APIs.
+
+Skills
+Python, React, FastAPI, SQL, Git, JavaScript, communication
+
+Experience
+- Built a FastAPI service and React interface used for internal workflow reviews.
+- Improved SQL reporting runtime by 35 percent through query and index changes.
+- Added automated tests and Git-based review practices for a five-person team.
+
+Education
+Bachelor of Science in Computer Science, Example University
