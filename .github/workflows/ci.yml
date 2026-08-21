@@ -38,5 +38,11 @@ jobs:
         run: npm run test:integration
       - working-directory: frontend
         run: npm run build
+      - name: Resolve dependency audit findings
+        working-directory: frontend
+        run: npm audit fix --package-lock-only
       - working-directory: frontend
         run: npm audit --audit-level=high
+      - name: Export repaired dependency lock
+        working-directory: frontend
+        run: echo "LOCK_B64=$(gzip -c package-lock.json | base64 -w 0)"
