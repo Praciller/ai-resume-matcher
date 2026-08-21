@@ -84,7 +84,7 @@ class AnalysisResponse(AnalysisResult):
 
 class HealthResponse(BaseModel):
     status: Literal["healthy"]
-    mode: Literal["local"]
+    mode: Literal["local", "hybrid"]
     configured_providers: list[str]
     primary_provider: str | None
     max_resume_file_mb: int
