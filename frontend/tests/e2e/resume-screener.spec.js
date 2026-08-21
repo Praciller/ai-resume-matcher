@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test";
 const health = {
   status: "healthy",
   mode: "live",
-  configured_providers: ["9arm"],
-  primary_provider: "9arm",
+  configured_providers: ["external"],
+  primary_provider: "external",
   max_resume_file_mb: 5,
   max_resume_chars: 20_000,
   max_jd_chars: 20_000,
