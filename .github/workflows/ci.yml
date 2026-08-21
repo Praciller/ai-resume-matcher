@@ -11,11 +11,6 @@ jobs:
   local-review:
     runs-on: ubuntu-latest
     env:
-      MOCK_AI_MODE: "true"
-      NINEARM_API_KEY: ""
-      GEMINI_API_KEY: ""
-      GROQ_API_KEY: ""
-      CEREBRAS_API_KEY: ""
       PYTHONPATH: .
     steps:
       - uses: actions/checkout@v6

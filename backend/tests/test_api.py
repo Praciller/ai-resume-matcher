@@ -14,22 +14,26 @@ client = TestClient(main.app)
 def test_health_endpoint() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+    payload = response.json()
+    assert payload["status"] == "healthy"
+    assert payload["mode"] == "local"
+    assert payload["configured_providers"] == []
 
 
-def test_mock_analysis_endpoint() -> None:
+def test_sample_analysis_endpoint() -> None:
     response = client.post("/api/mock-analyze")
     assert response.status_code == 200
     payload = response.json()
     assert payload["model_used"] == "deterministic-sample-v1"
+    assert payload["provider_used"] == "local"
     assert 0 <= payload["match_score"] <= 100
 
 
-def test_full_mock_pdf_flow(monkeypatch) -> None:
+def test_full_local_pdf_flow(monkeypatch) -> None:
     monkeypatch.setattr(
         main,
         "settings",
-        replace(main.settings, mock_ai_mode=True, cache_enabled=False),
+        replace(main.settings, cache_enabled=False),
     )
     response = client.post(
         "/api/analyze",
@@ -49,7 +53,8 @@ def test_full_mock_pdf_flow(monkeypatch) -> None:
     )
     assert response.status_code == 200
     payload = response.json()
-    assert payload["provider_used"] == "mock"
+    assert payload["provider_used"] == "local"
+    assert payload["model_used"] == "deterministic-local-v1"
     assert payload["matched_skills"]
     assert payload["analysis_id"]
 

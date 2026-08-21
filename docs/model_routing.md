@@ -1,40 +1,31 @@
-# Model Routing
+# Analysis routing
 
-## Order
+## Current public path
 
-Default:
+The public application uses one deterministic local analysis path. It does not route resume or job-description text to an external inference service.
 
 ```text
-9arm qwen3.6-35b-a3b
-  -> Gemini gemini-2.5-flash-lite
-  -> Gemini gemini-2.5-flash
-  -> Groq openai/gpt-oss-20b
-  -> Cerebras gpt-oss-120b
+validated PDF text + validated job description
+  -> bounded skill extraction
+  -> explicit matched/missing evidence
+  -> reproducible coverage-based score
+  -> schema-validated report
 ```
 
-Change order with `AI_PROVIDER_ORDER`.
+## Acceptance gate
 
-## Acceptance Gate
+Every result must:
 
-Each response must:
-
-1. Parse as one JSON object.
-2. Validate against `AnalysisResult`.
-3. Keep score in `0..100`.
-4. Include every required array.
-5. Include a meaningful summary and actionable recommendations.
-6. Deduplicate string lists case-insensitively.
-
-Invalid or low-quality output moves to the next model. If every configured provider fails, the API returns a controlled `503`.
-
-## Structured Output
-
-- Gemini uses `responseMimeType=application/json` and `responseJsonSchema`.
-- Groq and Cerebras use OpenAI-compatible `response_format.type=json_schema`.
-- 9arm receives the schema in the prompt, then passes through the same Pydantic validation gate.
-
-Provider schema generation removes unsupported annotation keywords while retaining required fields and `additionalProperties: false`.
+1. Validate against `AnalysisResult`.
+2. Keep score in `0..100`.
+3. Include every required array.
+4. Include a meaningful summary and actionable recommendations.
+5. Deduplicate skill evidence through the bounded matching logic.
 
 ## Privacy
 
-Resume and JD text are sent to the first provider that successfully returns accepted output. Configure only providers approved for the intended data-handling policy.
+The analysis itself runs locally in the application process. Public deployments still receive the uploaded resume at the application server, so sensitive personal documents should not be sent to an untrusted deployment.
+
+## Limitations
+
+The matcher recognizes an intentionally bounded skill vocabulary and does not infer synonyms, proficiency, recency, or hidden experience. The score is a reproducible portfolio heuristic rather than a hiring prediction.

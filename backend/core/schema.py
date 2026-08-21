@@ -1,4 +1,4 @@
-"""Validated API and model response contracts."""
+"""Validated API and analysis response contracts."""
 
 from __future__ import annotations
 
@@ -84,7 +84,7 @@ class AnalysisResponse(AnalysisResult):
 
 class HealthResponse(BaseModel):
     status: Literal["healthy"]
-    mode: Literal["mock", "live", "unconfigured"]
+    mode: Literal["local"]
     configured_providers: list[str]
     primary_provider: str | None
     max_resume_file_mb: int

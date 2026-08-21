@@ -1,59 +1,51 @@
 # AI Resume Matcher
 
-Compare a PDF resume with a job description and receive a validated match report: fit score, evidence, skill gaps, actions, learning priorities, interview questions, and neutral risk flags.
+Compare a PDF resume with a job description and receive a deterministic, validated match report with fit score, evidence, skill gaps, recommended actions, learning priorities, interview questions, and neutral risk flags.
 
-**Live demo:** [ai-resume-matcher-psi-one.vercel.app](https://ai-resume-matcher-psi-one.vercel.app)
-**Health:** [ai-resume-matcher-psi-one.vercel.app/api/health](https://ai-resume-matcher-psi-one.vercel.app/api/health)
+**Live demo:** https://ai-resume-matcher-psi-one.vercel.app
+**Health:** https://ai-resume-matcher-psi-one.vercel.app/api/health
 
-![Structured AI resume analysis report](docs/screenshots/analysis-report.png)
+![Structured resume analysis report](docs/screenshots/analysis-report.png)
 
-## Product Flow
+## Product flow
 
 ```text
 PDF resume + job description
   -> React validation and upload
   -> FastAPI /api/analyze
   -> PDF text extraction and limits
-  -> 9arm-first provider routing
-  -> strict Pydantic schema validation
+  -> deterministic local matching
+  -> strict schema validation
   -> score, evidence, gaps, actions, interview prep
   -> safe React report rendering
 ```
 
 ## Highlights
 
-- Validates PDF extension, MIME type, file size, extractable text, and JD length.
-- Keeps provider keys server-side.
-- Routes `9arm -> Gemini Lite -> Gemini Flash -> Groq -> Cerebras`.
-- Rejects malformed or low-quality model output before rendering.
-- Supports deterministic mock and sample modes without API quota.
+- Validates PDF extension, MIME type, file size, extractable text, and job-description length.
+- Uses deterministic local matching with no external inference account or credential required.
+- Produces stable reports from explicit skill evidence in the supplied texts.
+- Supports sample mode for reviewer-friendly demonstrations.
 - Caches repeated analyses in process with a configurable TTL.
 - Uses one FastAPI app for local development and Vercel.
-- Includes unit, integration, API, schema, fallback, build, and browser tests.
+- Includes unit, integration, API, schema, build, and browser test tooling.
 
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 | --- | --- |
 | Frontend | React 18, Vite 8, Tailwind CSS, Lucide |
-| Backend | Python 3.12, FastAPI, Pydantic v2, HTTPX |
+| Backend | Python 3.12, FastAPI, Pydantic v2 |
 | PDF | pypdf |
-| AI | 9arm, Gemini, Groq, Cerebras |
+| Analysis | Deterministic evidence and skill-gap matching |
 | Testing | pytest, Vitest, Testing Library, Playwright |
 | Deployment | Vercel |
 
-## Local Setup
+## Local setup
 
 ```powershell
 git clone https://github.com/Praciller/ai-resume-matcher.git
 cd ai-resume-matcher
-```
-
-No API key or real resume is required. Mock analysis is the default.
-
-Backend:
-
-```powershell
 python -m venv backend/.venv
 backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
 backend/.venv/Scripts/python.exe -m uvicorn backend.main:app --reload --port 8000
@@ -69,7 +61,7 @@ npm run dev
 
 Open `http://localhost:5173`. Vite proxies `/api` to `http://127.0.0.1:8000`.
 
-Generate deterministic evidence from synthetic text fixtures:
+Generate deterministic evidence from synthetic fixtures:
 
 ```powershell
 $env:PYTHONPATH="."
@@ -77,43 +69,19 @@ backend/.venv/Scripts/python.exe scripts/generate_local_match_report.py
 Get-Content reports/local_match_report.md
 ```
 
-Expected fixture result: `69/100`, with matched and missing criteria listed in
-`reports/local_match_report.md`. The generated report is gitignored.
-
-No real resumes or bulk resume datasets are tracked. The demo and tests use
-`backend/dataset/synthetic_resume.txt`; optional local datasets belong under the
-ignored `backend/dataset/resumes/` directory.
+No real resumes or bulk resume datasets are tracked. Reviewer fixtures are synthetic; optional local datasets belong under the ignored `backend/dataset/resumes/` directory.
 
 ## Environment
 
-See [.env.example](.env.example) for the complete contract.
+The public environment contract contains only application limits, allowed frontend origins, and cache settings. No external inference credential is required.
 
-External provider routing is optional and explicitly enabled by setting
-`MOCK_AI_MODE=false` plus a server-side key:
-
-```env
-AI_PROVIDER_ORDER=9arm,gemini,groq,cerebras
-NINEARM_API_KEY=
-NINEARM_RESUME_MODEL=qwen3.6-35b-a3b
-```
-
-Gemini requirements-compatible defaults:
-
-```env
-GEMINI_API_KEY=
-GEMINI_RESUME_MODEL=gemini-2.5-flash-lite
-GEMINI_RESUME_FALLBACK_MODEL=gemini-2.5-flash
-GEMINI_TIMEOUT_SECONDS=30
-GEMINI_MAX_RETRIES=1
-```
-
-Never put API keys in frontend variables or commit them to Git. Rotate any key that has ever appeared in repository history.
+See [.env.example](.env.example).
 
 ## API
 
 ### `GET /api/health`
 
-Returns mode, configured providers, primary provider, and input limits. It does not spend AI quota.
+Returns local mode and input limits without external calls.
 
 ### `POST /api/analyze`
 
@@ -122,49 +90,24 @@ Multipart fields:
 - `resume_file`: PDF
 - `job_description`: job-description text
 
-Response follows the strict schema documented in [docs/api.md](docs/api.md), including:
-
-```json
-{
-  "match_score": 78,
-  "summary": "Evidence-based role fit summary.",
-  "matched_skills": [],
-  "missing_skills": [],
-  "strengths": [],
-  "weaknesses": [],
-  "recommendations": [],
-  "learning_plan": [],
-  "interview_questions": [],
-  "risk_flags": [],
-  "model_used": "qwen3.6-35b-a3b",
-  "provider_used": "9arm",
-  "cached": false,
-  "analysis_id": "string",
-  "warnings": []
-}
-```
+The response follows the strict schema documented in [docs/api.md](docs/api.md), including score, matched and missing skills, recommendations, learning plan, interview questions, warnings, and an analysis identifier.
 
 ### `POST /api/mock-analyze`
 
-Returns a deterministic sample report without a resume or provider call.
+Returns a deterministic sample report without a resume upload.
 
-## Mock AI Mode
+## Matching method
 
-Mock mode is the default. The explicit setting is:
-
-```env
-MOCK_AI_MODE=true
-```
-
-The full PDF and JD validation path still runs. Analysis becomes deterministic and local.
+The matcher extracts a bounded set of explicit skill terms from the job description, checks whether those terms occur in the resume, computes a reproducible coverage-based score, and generates recommendations for missing evidence. It does not infer hidden experience or make hiring decisions.
 
 ## Safety and scope
 
 - This is a portfolio decision-support demo, not an automated hiring authority.
 - Synthetic samples are the default reviewer inputs.
-- The scoring heuristic is not calibrated to hiring outcomes.
+- The score is a deterministic portfolio heuristic, not calibrated to hiring outcomes.
 - The project has not been fairness or compliance audited.
 - Do not upload sensitive resumes to a public deployment.
+- Results support human review only and must not determine candidate selection.
 
 ## Testing
 
@@ -183,47 +126,17 @@ npm audit --audit-level=high
 
 See [docs/testing.md](docs/testing.md) and [docs/verification.md](docs/verification.md).
 
-## Deployment
-
-Vercel builds `frontend/dist` and exposes the FastAPI app from `api/index.py`.
-
-Configure the server-side variables from `.env.example` in Vercel. Do not add `VITE_*` secrets. After deployment, verify:
-
-1. `/` loads.
-2. `/api/health` reports the intended provider order.
-3. Sample mode renders.
-4. A text-based PDF completes real analysis.
-5. Invalid and scanned PDFs fail with controlled messages.
-
-## Known Limitations
+## Known limitations
 
 - No OCR for scanned or image-only PDFs.
 - Cache is process-local and can reset between serverless instances.
-- Match score is model-generated, not calibrated against hiring outcomes.
-- Provider quotas, model availability, and latency can change.
-- Resume and JD text are sent to the first available configured provider.
-- Keyword coverage misses synonyms, context, proficiency, recency, and transferable skills.
-- Results support human review only and must not determine candidate selection.
-
-## Future Improvements
-
-- Add rubric-based score evaluation fixtures.
-- Add OCR as an explicit opt-in path.
-- Add multiple-resume comparison.
-- Add saved analysis history with user-controlled retention.
-- Export reports to PDF.
-- Add a local embedding similarity baseline.
-
-## Resume Bullet
-
-Modernized an AI resume matching platform using React, FastAPI, multi-provider structured analysis, PDF validation, Pydantic schema enforcement, provider fallback, mock mode, and Vercel deployment verification to generate explainable skill-gap and interview-preparation reports.
+- The score is based on bounded explicit skill matching and misses synonyms, proficiency, recency, and transferable skills.
+- The result is not a predictor of interview or hiring outcomes.
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
 - [API](docs/api.md)
-- [Model routing](docs/model_routing.md)
-- [Gemini analysis](docs/gemini_resume_analysis.md)
 - [Testing](docs/testing.md)
 - [Verification](docs/verification.md)
 - [Portfolio review](PORTFOLIO_REVIEW.md)

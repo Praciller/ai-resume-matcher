@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Annotated
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.core.analysis import (
-    AIAnalyzer,
-    AnalysisUnavailableError,
     ProviderResult,
     build_mock_analysis,
     make_analysis_id,
@@ -28,15 +25,13 @@ from backend.core.parser import (
 from backend.core.schema import AnalysisResponse, HealthResponse
 
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
 cache = AnalysisCache()
-analyzer = AIAnalyzer(settings)
 
 app = FastAPI(
     title="AI Resume Matcher API",
-    description="Validated resume and job-description matching API.",
-    version="2.0.0",
+    description="Validated deterministic resume and job-description matching API.",
+    version="3.0.0",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -55,13 +50,11 @@ def root() -> dict[str, str]:
 @app.get("/api/health", response_model=HealthResponse)
 @app.get("/health", response_model=HealthResponse, include_in_schema=False)
 def health() -> HealthResponse:
-    providers = settings.configured_providers()
-    mode = "mock" if settings.mock_ai_mode else ("live" if providers else "unconfigured")
     return HealthResponse(
         status="healthy",
-        mode=mode,
-        configured_providers=providers,
-        primary_provider=providers[0] if providers else None,
+        mode="local",
+        configured_providers=[],
+        primary_provider=None,
         max_resume_file_mb=settings.max_resume_file_mb,
         max_resume_chars=settings.max_resume_chars,
         max_jd_chars=settings.max_jd_chars,
@@ -70,7 +63,7 @@ def health() -> HealthResponse:
 
 @app.post("/api/mock-analyze", response_model=AnalysisResponse)
 def mock_analyze() -> AnalysisResponse:
-    result = ProviderResult(sample_analysis(), "mock", "deterministic-sample-v1")
+    result = ProviderResult(sample_analysis(), "local", "deterministic-sample-v1")
     return to_response(
         result=result,
         analysis_id="sample-demo",
@@ -123,20 +116,11 @@ async def analyze(
                 warnings=warnings,
             )
 
-    try:
-        if settings.mock_ai_mode:
-            provider_result = ProviderResult(
-                build_mock_analysis(parsed_resume.text, parsed_jd.text),
-                "mock",
-                "deterministic-local-v1",
-            )
-        else:
-            provider_result = analyzer.analyze(
-                parsed_resume.text, parsed_jd.text
-            )
-    except AnalysisUnavailableError as exc:
-        logger.warning("Analysis unavailable for id=%s", analysis_id)
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    provider_result = ProviderResult(
+        build_mock_analysis(parsed_resume.text, parsed_jd.text),
+        "local",
+        "deterministic-local-v1",
+    )
 
     if settings.cache_enabled:
         cache.set(

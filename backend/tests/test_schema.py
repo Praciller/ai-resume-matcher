@@ -3,7 +3,6 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from backend.core.analysis import provider_json_schema
 from backend.core.schema import AnalysisResult
 
 
@@ -46,10 +45,3 @@ def test_schema_requires_all_arrays() -> None:
     payload.pop("risk_flags")
     with pytest.raises(ValidationError):
         AnalysisResult.model_validate(payload)
-
-
-def test_provider_schema_removes_unsupported_string_constraints() -> None:
-    serialized = str(provider_json_schema())
-    assert "minLength" not in serialized
-    assert "maxLength" not in serialized
-    assert "additionalProperties" in serialized
