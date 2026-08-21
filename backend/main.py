@@ -16,6 +16,7 @@ from backend.core.analysis import (
 )
 from backend.core.cache import AnalysisCache
 from backend.core.config import get_settings
+from backend.core.external import ExternalAnalysisClient
 from backend.core.parser import (
     InputValidationError,
     parse_pdf_to_text,
@@ -30,8 +31,11 @@ cache = AnalysisCache()
 
 app = FastAPI(
     title="AI Resume Matcher API",
-    description="Validated deterministic resume and job-description matching API.",
-    version="3.0.0",
+    description=(
+        "Validated deterministic resume and job-description matching API with an "
+        "explicit optional external GenAI route."
+    ),
+    version="3.1.0",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -50,11 +54,12 @@ def root() -> dict[str, str]:
 @app.get("/api/health", response_model=HealthResponse)
 @app.get("/health", response_model=HealthResponse, include_in_schema=False)
 def health() -> HealthResponse:
+    external_enabled = settings.external_genai_enabled
     return HealthResponse(
         status="healthy",
-        mode="local",
-        configured_providers=[],
-        primary_provider=None,
+        mode="hybrid" if external_enabled else "local",
+        configured_providers=settings.configured_providers(),
+        primary_provider="external" if external_enabled else "local",
         max_resume_file_mb=settings.max_resume_file_mb,
         max_resume_chars=settings.max_resume_chars,
         max_jd_chars=settings.max_jd_chars,
@@ -106,8 +111,53 @@ async def analyze(
         )
 
     analysis_id = make_analysis_id(parsed_resume.text, parsed_jd.text)
+    local_model = "deterministic-local-v1"
+    local_cache_key = f"{analysis_id}:local:{local_model}"
+
+    if settings.external_genai_enabled:
+        external_cache_key = (
+            f"{analysis_id}:external:{settings.external_genai_model}"
+        )
+        if settings.cache_enabled:
+            cached = cache.get(external_cache_key)
+            if cached:
+                return to_response(
+                    ProviderResult(cached.result, cached.provider, cached.model),
+                    analysis_id=analysis_id,
+                    cached=True,
+                    warnings=warnings,
+                )
+
+        try:
+            external_result = ExternalAnalysisClient(
+                endpoint=settings.external_genai_url,
+                api_key=settings.external_genai_api_key,
+                model=settings.external_genai_model,
+                timeout_seconds=settings.external_genai_timeout_seconds,
+            ).analyze(parsed_resume.text, parsed_jd.text)
+        except Exception:
+            warnings.append(
+                "External GenAI was unavailable or returned invalid output; "
+                "deterministic local analysis was used instead."
+            )
+        else:
+            if settings.cache_enabled:
+                cache.set(
+                    key=external_cache_key,
+                    result=external_result.analysis,
+                    provider=external_result.provider,
+                    model=external_result.model,
+                    ttl_seconds=settings.cache_ttl_seconds,
+                )
+            return to_response(
+                external_result,
+                analysis_id=analysis_id,
+                cached=False,
+                warnings=warnings,
+            )
+
     if settings.cache_enabled:
-        cached = cache.get(analysis_id)
+        cached = cache.get(local_cache_key)
         if cached:
             return to_response(
                 ProviderResult(cached.result, cached.provider, cached.model),
@@ -119,12 +169,12 @@ async def analyze(
     provider_result = ProviderResult(
         build_mock_analysis(parsed_resume.text, parsed_jd.text),
         "local",
-        "deterministic-local-v1",
+        local_model,
     )
 
     if settings.cache_enabled:
         cache.set(
-            key=analysis_id,
+            key=local_cache_key,
             result=provider_result.analysis,
             provider=provider_result.provider,
             model=provider_result.model,
