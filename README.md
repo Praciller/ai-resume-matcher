@@ -73,6 +73,20 @@ backend/.venv/Scripts/python.exe scripts/generate_local_match_report.py
 Get-Content reports/local_match_report.md
 ```
 
+The deterministic local matcher also has a synthetic counterfactual audit:
+
+```powershell
+$env:PYTHONPATH="."
+python scripts/generate_counterfactual_invariance_report.py
+Get-Content reports/counterfactual_invariance.md
+```
+
+The report checks eight synthetic resume variants across four presentation and
+wording groups, plus a qualification-changing negative control. It compares
+match score, matched and missing skills, learning priorities, and risk flags.
+This is a synthetic diagnostic only—not a fairness certification, hiring-outcome
+benchmark, or compliance assessment—and it does not infer protected traits.
+
 No real resumes or bulk resume datasets are tracked. Reviewer fixtures are synthetic; optional local datasets belong under the ignored `backend/dataset/resumes/` directory.
 
 ## Environment

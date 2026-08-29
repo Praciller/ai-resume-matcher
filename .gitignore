@@ -243,6 +243,9 @@ uploads/
 temp_uploads/
 extracted_text/
 reports/
+!reports/
+reports/*
+!reports/counterfactual_invariance.md
 *.pdf
 *.pem
 *.key

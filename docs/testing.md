@@ -16,6 +16,16 @@ Coverage includes:
 - remote model labels remain generic and are schema-validated
 - health, sample, full mock PDF flow, invalid PDF, empty JD
 
+The counterfactual-invariance audit uses only manually authored synthetic
+fixtures and can be regenerated with:
+
+```powershell
+python scripts/generate_counterfactual_invariance_report.py
+```
+
+Its report is reproducible and checks presentation-only invariance alongside a
+negative control where job-relevant evidence changes.
+
 ## Frontend
 
 ```powershell
