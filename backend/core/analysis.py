@@ -34,6 +34,33 @@ SKILL_TERMS = (
     "leadership",
     "project management",
 )
+_PRESENTATION_PREFIXES = (
+    "candidate name:",
+    "display name:",
+    "name:",
+    "pronoun wording:",
+    "pronouns:",
+    "honorific wording:",
+    "honorific:",
+    "contact placeholder:",
+    "contact:",
+    "email:",
+    "phone:",
+    "location:",
+    "biography:",
+    "bio:",
+)
+
+
+def _qualification_text(resume_text: str) -> str:
+    """Exclude explicitly labelled presentation metadata from local matching."""
+    evidence_lines = []
+    for line in resume_text.splitlines():
+        normalized = line.strip().casefold()
+        if normalized.startswith(_PRESENTATION_PREFIXES):
+            continue
+        evidence_lines.append(line)
+    return "\n".join(evidence_lines)
 
 
 def make_analysis_id(resume_text: str, jd_text: str) -> str:
@@ -42,7 +69,7 @@ def make_analysis_id(resume_text: str, jd_text: str) -> str:
 
 
 def build_mock_analysis(resume_text: str, jd_text: str) -> AnalysisResult:
-    resume_lower = resume_text.casefold()
+    resume_lower = _qualification_text(resume_text).casefold()
     jd_lower = jd_text.casefold()
     jd_skills = [skill for skill in SKILL_TERMS if skill in jd_lower]
     matched = [skill for skill in jd_skills if skill in resume_lower]
