@@ -173,17 +173,44 @@ export default function ResumeScreener() {
             <AnalysisLoadingState />
           ) : results ? (
             <AnalysisReport result={results} />
-          ) : (
-            <div className="empty-report">
-              <p className="eyebrow">Step 2</p>
-              <h2>Read the match report</h2>
-              <p>
-                Results will separate matched evidence, unclear skills, actions,
-                learning priorities, and interview questions.
-              </p>
-              <div className="empty-lines" aria-hidden="true">
-                <span />
-                <span />
+            ) : (
+              <div className="empty-report">
+                <p className="eyebrow">Step 2</p>
+                <h2>Read the match report</h2>
+                <p>
+                  Results will separate matched evidence, unclear skills, actions,
+                  learning priorities, and interview questions.
+                </p>
+                <div className="sample-preview" data-testid="sample-preview">
+                  <div className="sample-preview-heading">
+                    <div>
+                      <p className="eyebrow">Preview</p>
+                      <h3>Deterministic sample report</h3>
+                    </div>
+                    <span className="sample-badge">SAMPLE</span>
+                  </div>
+                  <div className="sample-preview-score">
+                    <strong>78</strong>
+                    <span>/100 match score</span>
+                  </div>
+                  <div className="sample-preview-grid">
+                    <div>
+                      <span>Matched evidence</span>
+                      <strong>React · Python · FastAPI · Git</strong>
+                    </div>
+                    <div>
+                      <span>Gaps to review</span>
+                      <strong>AWS · Kubernetes</strong>
+                    </div>
+                  </div>
+                  <p className="sample-preview-note">
+                    Synthetic local output; no resume upload or external model call.
+                    Run sample to inspect the full report.
+                  </p>
+                </div>
+                <div className="empty-lines" aria-hidden="true">
+                  <span />
+                  <span />
                 <span />
               </div>
             </div>

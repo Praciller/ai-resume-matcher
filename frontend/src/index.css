@@ -123,6 +123,54 @@
     @apply mt-3 max-w-[65ch] text-sm leading-6 text-muted-foreground;
   }
 
+  .sample-preview {
+    @apply mt-8 rounded-xl border border-primary/20 bg-primary/[0.035] p-5 sm:p-6;
+  }
+
+  .sample-preview-heading {
+    @apply flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .sample-preview-heading h3 {
+    @apply mt-1 text-lg font-bold tracking-tight;
+  }
+
+  .sample-badge {
+    @apply rounded-full border border-primary/25 bg-background px-2.5 py-1 text-[0.65rem] font-bold tracking-[0.16em] text-primary;
+  }
+
+  .sample-preview-score {
+    @apply mt-5 flex items-baseline gap-2;
+  }
+
+  .sample-preview-score strong {
+    @apply text-4xl font-bold tracking-tight text-primary;
+  }
+
+  .sample-preview-score span {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .sample-preview-grid {
+    @apply mt-5 grid gap-3 sm:grid-cols-2;
+  }
+
+  .sample-preview-grid > div {
+    @apply rounded-lg border bg-background/70 p-3;
+  }
+
+  .sample-preview-grid span {
+    @apply block text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+  }
+
+  .sample-preview-grid strong {
+    @apply mt-1 block text-sm leading-5;
+  }
+
+  .sample-preview-note {
+    @apply mt-4 text-xs leading-5 text-muted-foreground;
+  }
+
   .input-panel form {
     @apply space-y-6;
   }
