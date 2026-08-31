@@ -61,6 +61,8 @@ describe("ResumeScreener", () => {
     expect(screen.getByRole("heading", { name: "AI Resume Matcher" })).toBeVisible();
     expect(screen.getByLabelText("Resume PDF")).toBeVisible();
     expect(screen.getByLabelText("Job description")).toBeVisible();
+    expect(screen.getByTestId("sample-preview")).toBeVisible();
+    expect(screen.getByText("/100 match score")).toBeVisible();
 
     await waitFor(() => {
       expect(screen.getByText("API ready")).toBeVisible();

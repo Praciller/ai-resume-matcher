@@ -5,6 +5,16 @@ Compare a PDF resume with a job description and receive a validated match report
 **Live demo:** https://ai-resume-matcher-psi-one.vercel.app  
 **Health:** https://ai-resume-matcher-psi-one.vercel.app/api/health
 
+## Recruiter snapshot
+
+**Signal:** Validated PDF-to-job analysis with typed reports, deterministic sample mode, provider routing, and human-review boundaries.
+
+[Repository](https://github.com/Praciller/ai-resume-matcher) · [Live demo](https://ai-resume-matcher-psi-one.vercel.app/)
+
+**What this demonstrates:** bounded document validation · evidence and skill-gap reporting · safe local fallback and explicit provider boundaries.
+
+**Boundary:** decision-support for review and learning; it is not an automated hiring decision or fairness certification.
+
 ![Structured resume analysis report](docs/screenshots/analysis-report.png)
 
 ## Product flow
