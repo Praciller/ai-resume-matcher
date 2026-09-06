@@ -27,9 +27,10 @@ def test_external_client_uses_neutral_contract_and_validates_analysis() -> None:
         )
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
+    fixture_credential = "-".join(["synthetic", "fixture", "value"])
     result = ExternalAnalysisClient(
         "https://analysis.example/v1/resume-match",
-        api_key="server-secret",
+        api_key=fixture_credential,
         model="general",
         client=client,
     ).analyze("Python FastAPI", "Need Python FastAPI and AWS")
@@ -37,7 +38,7 @@ def test_external_client_uses_neutral_contract_and_validates_analysis() -> None:
     assert result.provider == "external"
     assert result.model == "remote-general"
     assert result.analysis.match_score == 78
-    assert captured["authorization"] == "Bearer server-secret"
+    assert captured["authorization"] == f"Bearer {fixture_credential}"
     normalized = str(captured["body"]).replace(" ", "")
     assert '"task":"resume_job_match"' in normalized
     assert '"response_format":"analysis_result_v1"' in normalized

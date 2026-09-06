@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 
-from backend.core.schema import AnalysisResult, AnalysisResponse
+from backend.core.schema import AnalysisResult, AnalysisResponse, ScoreBreakdown, SkillEvidence
 
 
 @dataclass(frozen=True)
@@ -34,6 +35,33 @@ SKILL_TERMS = (
     "leadership",
     "project management",
 )
+
+# Aliases are matched with word boundaries so short forms such as "js"
+# cannot match inside unrelated words like "json". English-word or
+# collision-prone forms ("node", "pm") are intentionally excluded.
+_SKILL_ALIASES: dict[str, tuple[str, ...]] = {
+    "javascript": ("js", "ecmascript"),
+    "typescript": ("ts",),
+    "node.js": ("nodejs",),
+    "kubernetes": ("k8s",),
+    "machine learning": ("ml",),
+    "data analysis": ("analytics",),
+}
+
+_ALIAS_PATTERNS: dict[str, re.Pattern[str]] = {
+    skill: re.compile(rf"(?<![a-z0-9])({'|'.join(re.escape(a) for a in aliases)})(?![a-z0-9])")
+    for skill, aliases in _SKILL_ALIASES.items()
+}
+
+_EVIDENCE_MAX_CHARS = 200
+
+_ANALYSIS_LIMITATIONS = (
+    "Keyword-based matching cannot verify the depth, recency, or quality of experience.",
+    "Skills are detected by literal text or a fixed alias table; other synonyms are missed.",
+    "Scanned or image-only resumes cannot be analyzed.",
+    "The match score is a coverage heuristic, not a prediction of job performance.",
+)
+
 _PRESENTATION_PREFIXES = (
     "candidate name:",
     "display name:",
@@ -68,14 +96,65 @@ def make_analysis_id(resume_text: str, jd_text: str) -> str:
     return digest[:16]
 
 
+def _has_alias(text: str, skill: str) -> bool:
+    pattern = _ALIAS_PATTERNS.get(skill)
+    return bool(pattern and pattern.search(text))
+
+
+def _extract_evidence(resume_lines: list[str], resume_lower: str, skill: str) -> str | None:
+    """Return the first resume line that literally evidences the skill."""
+    for line in resume_lines:
+        line_lower = line.casefold()
+        if skill in line_lower or _has_alias(line_lower, skill):
+            quote = " ".join(line.split())
+            return quote[:_EVIDENCE_MAX_CHARS]
+    if skill in resume_lower or _has_alias(resume_lower, skill):
+        return resume_lower[:_EVIDENCE_MAX_CHARS]
+    return None
+
+
 def build_mock_analysis(resume_text: str, jd_text: str) -> AnalysisResult:
-    resume_lower = _qualification_text(resume_text).casefold()
+    qualification = _qualification_text(resume_text)
+    resume_lines = [line for line in qualification.splitlines() if line.strip()]
+    resume_lower = qualification.casefold()
     jd_lower = jd_text.casefold()
     jd_skills = [skill for skill in SKILL_TERMS if skill in jd_lower]
-    matched = [skill for skill in jd_skills if skill in resume_lower]
-    missing = [skill for skill in jd_skills if skill not in resume_lower]
+    matched = []
+    partial = []
+    missing = []
+    for skill in jd_skills:
+        if skill in resume_lower:
+            matched.append(skill)
+        elif _has_alias(resume_lower, skill):
+            partial.append(skill)
+        else:
+            missing.append(skill)
     coverage = len(matched) / max(1, len(jd_skills))
     score = round(48 + coverage * 42)
+
+    skill_evidence = []
+    for skill, status in [(s, "matched") for s in matched] + [
+        (s, "partial") for s in partial
+    ]:
+        quote = _extract_evidence(resume_lines, resume_lower, skill)
+        if quote:
+            skill_evidence.append(
+                SkillEvidence(
+                    skill=skill,
+                    status=status,
+                    source="resume",
+                    evidence_quote=quote,
+                )
+            )
+
+    score_breakdown = ScoreBreakdown(
+        skills_considered=len(jd_skills),
+        matched_count=len(matched),
+        partial_count=len(partial),
+        missing_count=len(missing),
+        coverage=round(coverage, 4),
+        formula="round(48 + matched/considered * 42); aliases are evidence only, not score",
+    )
 
     recommendations = [
         f"Add one quantified resume bullet showing practical {skill} impact."
@@ -107,6 +186,10 @@ def build_mock_analysis(resume_text: str, jd_text: str) -> AnalysisResult:
             "strengths": [f"Shows direct evidence of {skill}." for skill in matched[:4]],
             "weaknesses": [
                 f"Does not yet show concrete evidence of {skill}." for skill in missing[:4]
+            ]
+            + [
+                f"Only indirect alias evidence of {skill} was found."
+                for skill in partial[:2]
             ],
             "recommendations": recommendations,
             "learning_plan": learning_plan,
@@ -120,6 +203,11 @@ def build_mock_analysis(resume_text: str, jd_text: str) -> AnalysisResult:
                 if not jd_skills
                 else []
             ),
+            "skill_evidence": [
+                evidence.model_dump() for evidence in skill_evidence
+            ],
+            "score_breakdown": score_breakdown.model_dump(),
+            "limitations": list(_ANALYSIS_LIMITATIONS),
         }
     )
 
@@ -168,6 +256,29 @@ def sample_analysis() -> AnalysisResult:
                 "How do you validate structured analytical output before rendering it?",
             ],
             "risk_flags": ["Cloud experience may be below the role's preferred level."],
+            "skill_evidence": [
+                {
+                    "skill": "React",
+                    "status": "matched",
+                    "source": "resume",
+                    "evidence_quote": "Built user-facing React applications.",
+                },
+                {
+                    "skill": "Python",
+                    "status": "matched",
+                    "source": "resume",
+                    "evidence_quote": "Connected Python APIs to production interfaces.",
+                },
+            ],
+            "score_breakdown": {
+                "skills_considered": 7,
+                "matched_count": 5,
+                "partial_count": 0,
+                "missing_count": 2,
+                "coverage": 0.7143,
+                "formula": "round(48 + matched/considered * 42); aliases are evidence only, not score",
+            },
+            "limitations": list(_ANALYSIS_LIMITATIONS),
         }
     )
 
@@ -177,6 +288,7 @@ def to_response(
     analysis_id: str,
     cached: bool,
     warnings: list[str],
+    latency_ms: int | None = None,
 ) -> AnalysisResponse:
     return AnalysisResponse.model_validate(
         {
@@ -186,5 +298,6 @@ def to_response(
             "cached": cached,
             "analysis_id": analysis_id,
             "warnings": warnings,
+            "latency_ms": latency_ms,
         }
     )

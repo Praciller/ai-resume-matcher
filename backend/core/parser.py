@@ -27,6 +27,8 @@ def validate_pdf_upload(
 ) -> None:
     if not filename or not filename.lower().endswith(".pdf"):
         raise InputValidationError("Resume must use the .pdf file extension.")
+    if "/" in filename or "\\" in filename or filename.strip() in ("", ".", ".."):
+        raise InputValidationError("Resume filename must not contain path separators.")
     if content_type != "application/pdf":
         raise InputValidationError("Resume MIME type must be application/pdf.")
     if not file_bytes:
