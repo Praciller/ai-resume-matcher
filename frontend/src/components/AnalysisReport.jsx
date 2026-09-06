@@ -2,6 +2,7 @@ import InterviewPrep from "./InterviewPrep";
 import LearningPlan from "./LearningPlan";
 import MatchScoreCard from "./MatchScoreCard";
 import Recommendations from "./Recommendations";
+import ScoreEvidence from "./ScoreEvidence";
 import SkillGapList from "./SkillGapList";
 
 export default function AnalysisReport({ result }) {
@@ -11,6 +12,11 @@ export default function AnalysisReport({ result }) {
       <SkillGapList
         matchedSkills={result.matched_skills}
         missingSkills={result.missing_skills}
+      />
+      <ScoreEvidence
+        breakdown={result.score_breakdown}
+        evidence={result.skill_evidence}
+        limitations={result.limitations}
       />
       <Recommendations
         strengths={result.strengths}
@@ -38,6 +44,9 @@ export default function AnalysisReport({ result }) {
         <span>Provider: {result.provider_used}</span>
         <span>Model: {result.model_used}</span>
         <span>ID: {result.analysis_id}</span>
+        {typeof result.latency_ms === "number" && (
+          <span>Processing time: {result.latency_ms} ms</span>
+        )}
         {result.cached && <span>Cached result</span>}
       </footer>
     </div>

@@ -41,7 +41,9 @@ PDF resume + job description
 - Falls back to deterministic local analysis when external inference is unavailable or invalid.
 - Separates local and external cache keys so changing inference mode cannot return a stale result from another route.
 - Supports sample mode for reviewer-friendly demonstrations.
-- Includes unit, integration, API, schema, build, guardrail, and dependency-audit checks.
+- Exposes score provenance: a score breakdown with the exact formula, per-skill evidence quotes traced to resume lines, alias/partial matches, and explicit limitations.
+- Covers adversarial inputs (prompt injection in resume or JD, script-like content, path-separated filenames) with regression tests; the local analyzer has no instruction-following surface, so injected text is inert.
+- Includes unit, integration, API, schema, build, guardrail, browser-E2E, and dependency-audit checks.
 
 ## Tech stack
 
@@ -140,7 +142,7 @@ Returns a deterministic sample report without a resume upload or external infere
 
 ## Matching method
 
-The default matcher extracts a bounded set of explicit skill terms from the job description, checks whether those terms occur in the resume, computes a reproducible coverage-based score, and generates recommendations for missing evidence. It does not infer hidden experience or make hiring decisions.
+The default matcher extracts a bounded set of explicit skill terms from the job description, checks whether those terms occur in the resume, computes a reproducible coverage-based score, and generates recommendations for missing evidence. A fixed alias table (for example `k8s` → `kubernetes`) records alias-only hits as partial evidence without changing the score. Every evidence claim is quoted from the resume itself, and each report carries its score breakdown and limitations. The matcher does not infer hidden experience or make hiring decisions.
 
 The optional external route must return the same structured analysis contract. Its output is still schema-validated and remains decision support for human review.
 
@@ -175,7 +177,7 @@ See [docs/testing.md](docs/testing.md) and [docs/verification.md](docs/verificat
 
 - No OCR for scanned or image-only PDFs.
 - Cache is process-local and can reset between serverless instances.
-- The default score is based on bounded explicit skill matching and misses synonyms, proficiency, recency, and transferable skills.
+- The default score is based on bounded explicit skill matching with a fixed alias table and misses synonyms outside that table, proficiency, recency, and transferable skills.
 - The external endpoint contract does not by itself establish model quality, fairness, privacy, or policy compliance.
 - The result is not a predictor of interview or hiring outcomes.
 

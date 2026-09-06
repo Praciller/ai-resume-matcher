@@ -33,6 +33,26 @@ class LearningPlanItem(BaseModel):
         return " ".join(value.split()).strip()
 
 
+class ScoreBreakdown(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    skills_considered: int = Field(ge=0)
+    matched_count: int = Field(ge=0)
+    partial_count: int = Field(ge=0)
+    missing_count: int = Field(ge=0)
+    coverage: float = Field(ge=0.0, le=1.0)
+    formula: str = Field(min_length=1, max_length=200)
+
+
+class SkillEvidence(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    skill: str = Field(min_length=1, max_length=120)
+    status: Literal["matched", "partial", "missing"]
+    source: Literal["resume"]
+    evidence_quote: str = Field(min_length=1, max_length=300)
+
+
 class AnalysisResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -46,6 +66,9 @@ class AnalysisResult(BaseModel):
     learning_plan: list[LearningPlanItem]
     interview_questions: list[str]
     risk_flags: list[str]
+    skill_evidence: list[SkillEvidence] = Field(default_factory=list)
+    score_breakdown: ScoreBreakdown | None = None
+    limitations: list[str] = Field(default_factory=list)
 
     @field_validator("summary")
     @classmethod
@@ -60,6 +83,7 @@ class AnalysisResult(BaseModel):
         "recommendations",
         "interview_questions",
         "risk_flags",
+        "limitations",
     )
     @classmethod
     def clean_lists(cls, values: list[str]) -> list[str]:
@@ -80,6 +104,7 @@ class AnalysisResponse(AnalysisResult):
     cached: bool
     analysis_id: str
     warnings: list[str]
+    latency_ms: int | None = Field(default=None, ge=0)
 
 
 class HealthResponse(BaseModel):

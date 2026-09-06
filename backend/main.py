@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Annotated
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -84,6 +85,11 @@ async def analyze(
     job_description: Annotated[str | None, Form()] = None,
     jd_text: Annotated[str | None, Form()] = None,
 ) -> AnalysisResponse:
+    started = perf_counter()
+
+    def latency_ms() -> int:
+        return int((perf_counter() - started) * 1000)
+
     try:
         submitted_jd = job_description if job_description is not None else jd_text
         if submitted_jd is None:
@@ -126,6 +132,7 @@ async def analyze(
                     analysis_id=analysis_id,
                     cached=True,
                     warnings=warnings,
+                    latency_ms=latency_ms(),
                 )
 
         try:
@@ -154,6 +161,7 @@ async def analyze(
                 analysis_id=analysis_id,
                 cached=False,
                 warnings=warnings,
+                latency_ms=latency_ms(),
             )
 
     if settings.cache_enabled:
@@ -164,6 +172,7 @@ async def analyze(
                 analysis_id=analysis_id,
                 cached=True,
                 warnings=warnings,
+                latency_ms=latency_ms(),
             )
 
     provider_result = ProviderResult(
@@ -186,4 +195,5 @@ async def analyze(
         analysis_id=analysis_id,
         cached=False,
         warnings=warnings,
+        latency_ms=latency_ms(),
     )
